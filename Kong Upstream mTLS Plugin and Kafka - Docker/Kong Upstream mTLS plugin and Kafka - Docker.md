@@ -418,8 +418,7 @@ In order to implement a mTLS encrypted tunnel with Kafka and Kong, we're going t
 
 Create a local directory to store all artifacts we're going to produce.
 
-1. Create the new Certificate Authority (CA) private key
-
+1. Create the new Certificate Authority (CA) private key<p>
 The command creates a "acquaCA.key" file.
 
 <pre>
@@ -430,8 +429,7 @@ Generating RSA private key, 2048 bit long modulus
 e is 65537 (0x10001)
 </pre>
 
-2. Issue a Digital Certificate based on the private key
-
+2. Issue a Digital Certificate based on the private key<p>
 The command creates a "acquaCA.crt" file.
 
 <pre>
