@@ -538,7 +538,8 @@ Certificate:
 </pre>
 
 
-4. Issue a self-signed certificate for the CA<p>
+4. Issue a self-signed certificate for the CA
+
 Create a local file named "acquaCA_csr.conf" with the "CA:TRUE" constraint
 
 <pre>
@@ -559,7 +560,8 @@ organizationName         = Organization Name (eg, company)
 organizationName_default = Acqua Corp
 </pre>
 
-Submit the file to create a CSR ("Certificate signing request"), accepting the default values.<p>
+Submit the file to create a CSR ("Certificate signing request"), accepting the default values.
+
 The command will create a "acquaCA.csr" file:
 <pre>
 openssl req -new -sha256 -key acquaCA.key -nodes -out acquaCA.csr -config acquaCA_csr.conf
