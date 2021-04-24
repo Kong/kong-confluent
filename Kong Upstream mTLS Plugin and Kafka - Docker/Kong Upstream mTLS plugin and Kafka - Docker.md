@@ -20,7 +20,7 @@ Before getting started make sure you have the following tools already installed:
 
 ## Kafka installation
 
-1. Create a Docker Network
+1. Create a Docker Network<p>
 We're going to create a Docker Network specifically for both Kong and Kafka:
 
 <pre>
