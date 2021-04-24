@@ -98,9 +98,9 @@ testing
 </pre>
 
 
-## Kong Enterprise Installation
+## Kong Konnect Enterprise Installation
 
-In this guide we'll be using the OpenID Connect (OIDC) plug-in for Kong, which is only available for Kong Enterprise. If you don't already have a Kong Enterprise account, you can get a 30-day trial here.
+In this guide we'll be using the Kafka Upstream plugin, which is only available for Kong Konnect Enterprise. If you don't already have a Kong Konnect Enterprise account, you can get a 30-day trial here: https://konghq.com/get-started/#free-trial
 
 1. Login to Kong Bintray using your credentials
 <pre>
@@ -114,9 +114,9 @@ export KONG_LICENSE_DATA='{"license":{"version":1,"signature":"YYYYY","payload":
 
 3. Pull Kong Enterprise Image
 <pre>
-docker pull kong-docker-kong-enterprise-edition-docker.bintray.io/kong-enterprise-edition:2.2.0.0-alpine
+docker pull kong-docker-kong-gateway-docker.bintray.io/kong-enterprise-edition:2.4.0.0-alpine
 
-docker tag kong-docker-kong-enterprise-edition-docker.bintray.io/kong-enterprise-edition:2.2.0.0-alpine kong-ee
+docker tag kong-docker-kong-gateway-docker.bintray.io/kong-enterprise-edition:2.4.0.0-alpine kong-ee
 </pre>
 
 4. Install and initialize the Database
@@ -136,7 +136,7 @@ docker run --rm --link kong-ee-database:kong-ee-database \
    kong-ee kong migrations bootstrap
 </pre>
 
-5. Start Kong Enterprise
+5. Start Kong Konnect Enterprise container
 <pre>
 docker run -d --name kong-ee --link kong-ee-database:kong-ee-database \
   -e "KONG_DATABASE=postgres" \
@@ -184,48 +184,15 @@ docker start kong-ee
 http :8001 | jq .version
 </pre>
 
-## Kong Enterprise and Kafka mTLS Upstream plugin installation
-1. Clone the Git repository locally
-<pre>
-git clone --branch enhanced-security https://github.com/kong/kong-plugin-kafka-upstream.git
-
-cd kong-plugin-kafka-upstream
-
-luarocks make *.rockspec
-</pre>
-
-2. Copy the plugin to the Kong Enterprise Container
-<pre>
-docker cp /Users/claudio/kong/tech/Confluent/Plugin/kong-plugin-kafka-upstream/kong/plugins/kafka-upstream kong-ee:/usr/local/share/lua/5.1/kong/plugins
-</pre>
-
-3. Check the Container:
-<pre>
-$ docker exec -ti -u0 kong-ee /bin/sh
-/ # ls -l /usr/local/share/lua/5.1/kong/plugins
-total 260
-drwxr-xr-x    3 root     root          4096 Nov 17 22:10 acl
-drwxr-xr-x    4 root     root          4096 Nov 17 22:10 acme
-...
-drwxr-xr-x    2 root     root          4096 Nov 17 22:10 kafka-log
-drwxr-xr-x    1 502      dialout       4096 Dec 30 14:40 kafka-upstream
-...
-/ # chown -R root /usr/local/share/lua/5.1/kong/plugins/kafka-upstream
-/ # chgrp -R root /usr/local/share/lua/5.1/kong/plugins/kafka-upstream
-/ # exit
-
-docker stop kong-ee
-docker start kong-ee
-</pre>
-
-4. Create Kong Service and Route
+## Testing Kafka Upstream plugin with mTLS off
+1. Create Kong Service and Route
 <pre>
 http :8001/services name=httpbinservice url='http://httpbin.org'
 
 http :8001/services/httpbinservice/routes name='httpbinroute' paths:='["/httpbin"]'
 </pre>
 
-5. Test the Route:
+2. Test the Route:
 <pre>
 $ http :8000/httpbin/get
 HTTP/1.1 200 OK
@@ -257,9 +224,9 @@ X-Kong-Upstream-Latency: 324
 }
 </pre>
 
+3. Configure the plugin
 
-## Testing Kafka mTLS Upstream plugin with mTLS off
-1. Configure the plugin
+Notice we're referring to the Kafka container previously started with the settings "host" and "port". Likewise we're going to produce and publish events to the existing topic "test". Configure the other parameters to fit your needs. The following configuration represents an example only.
 <pre>
 curl -X POST http://localhost:8001/routes/httpbinroute/plugins \
     --data "name=kafka-upstream" \
