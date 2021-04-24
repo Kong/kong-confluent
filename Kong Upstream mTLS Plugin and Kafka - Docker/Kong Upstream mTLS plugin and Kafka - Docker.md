@@ -9,6 +9,7 @@ This Tech Guide will walk you through the integration between Kong Konnect Enter
 
 
 ## System Requirements
+Before getting started make sure you have the following tools already installed:
 
 - Docker
 - Httpie
@@ -20,6 +21,8 @@ This Tech Guide will walk you through the integration between Kong Konnect Enter
 ## Kafka installation
 
 1. Create a Docker Network
+We're going to create a Docker Network specifically for both Kong and Kafka:
+
 <pre>
 docker network create kong-net
 </pre>
