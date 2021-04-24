@@ -48,13 +48,13 @@ brew install kafka
 
 
 4. Create a Kafka topic<p>
+
 Insert a "kafka" entry in the /etc/hosts file with 127.0.0.1
 <pre>
 $ kafka-topics --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic test
 Created topic test.
 </pre>
 
-<p>
 Check the topic with:
 <pre>
 $ kafka-topics --zookeeper localhost:2181 --describe --topic test
