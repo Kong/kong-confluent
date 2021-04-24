@@ -1,7 +1,11 @@
 # Kong Enterprise and Kafka Upstream mTLS plugin - Docker
 
 ## Overview
-This Tech Guide will walk you through...
+Event streaming allows developers to build more scalable and loosely coupled real-time applications supporting massive concurrency demands and simplifying the construction of services.
+
+At the same time, API management provides capabilities to securely control the upstream services consumption, including the event processing infrastructure.
+
+This Tech Guide will walk you through the integration between Kong Konnect Enterprise and Kafka Event Streaming. We're going to expose Kafka to new and external consumers while applying specific and critical policies to control its consumption, including API key, OAuth/OIDC and others for authentication, rate limiting, caching, log processing, etc.
 
 
 ## System Requirements
