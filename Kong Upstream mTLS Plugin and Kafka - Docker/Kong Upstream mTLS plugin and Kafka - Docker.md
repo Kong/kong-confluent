@@ -226,7 +226,7 @@ X-Kong-Upstream-Latency: 324
 
 3. Configure the plugin
 
-Notice we're referring to the Kafka container previously started with the settings "host" and "port". Likewise we're going to produce and publish events to the existing topic "test". Configure the other parameters to fit your needs. The following configuration represents an example only.
+Notice we're referring to the previously started Kafka container with the settings "host" and "port". Likewise we're going to produce and publish events to the existing topic "test". Configure the other parameters to fit your needs. The following configuration represents an example only.
 <pre>
 curl -X POST http://localhost:8001/routes/httpbinroute/plugins \
     --data "name=kafka-upstream" \
@@ -251,7 +251,7 @@ curl -X POST http://localhost:8001/routes/httpbinroute/plugins \
 </pre>
 
 
-2. Check the Route
+4. Check the Route
 <pre>
 $ http :8001/routes/httpbinroute
 HTTP/1.1 200 OK
@@ -297,7 +297,7 @@ vary: Origin
 }
 </pre>
 
-3. Check the Plugin
+5. Check the Plugin
 <pre>
 $ http :8001/plugins
 HTTP/1.1 200 OK
@@ -362,7 +362,7 @@ vary: Origin
 }
 </pre>
 
-4. Consume the Route and check the Kafka Topic<p>
+6. Consume the Route and check the Kafka Topic<p>
 Start the Kafka consumer on one local terminal:
 <pre>
 $ kafka-console-consumer --bootstrap-server localhost:9092 --topic test --from-beginning
@@ -554,14 +554,14 @@ Getting Private key
 </pre>
 
 
-## Kong Enterprise Digital Certificate
-1. Issue a Private Key for Kong Enterprise<p>
+## Kong Konnect Enterprise Digital Certificate
+1. Issue a Private Key for Kong Konnect Enterprise<p>
 The command creates the "kong.key" file.
 <pre>
 openssl genrsa -out kong.key
 </pre>
 
-2. Issue a CSR (Certificate Signing Request) for the Kong Enterprise Digital Certificate<p>
+2. Issue a CSR (Certificate Signing Request) for the Kong Konnect Enterprise Digital Certificate<p>
 The command creates the "kong.csr" file.
 <pre>
 $ openssl req -new -key kong.key -out kong.csr
@@ -585,7 +585,7 @@ to be sent with your certificate request
 A challenge password []:kong
 </pre>
 
-3. Issue the Kong Enterprise Digital Certificate<p>
+3. Issue the Kong Konnect Enterprise Digital Certificate<p>
 The command creates the "kong.crt" file.
 <pre>
 $ openssl x509 -req -in kong.csr -days 3650 -sha1 -CAcreateserial -CA acquaCA.crt -CAkey acquaCA.key -out kong.crt
@@ -594,7 +594,7 @@ subject=/C=BR/ST=Sao Paulo/L=Sao Paulo/O=Kong Corp/OU=Technology/CN=kong.com/ema
 Getting CA Private Key
 </pre>
 
-4. Check the Kong Enterprise Certificate
+4. Check the Kong Konnect Enterprise Certificate
 <pre>
 $ openssl x509 -in kong.crt -text -noout
 Certificate:
@@ -655,7 +655,7 @@ Certificate:
 With the Kafka Digital Certificate issued, we're going to craft a ".jks" file to be used by Kafka Cluster.
 
 1. Create the Truststore and Keystore for all brokers<p>
-The command creates the "kafka.jks" file with the CA root Certificate. Use "kafkastore" as the keystore password.
+The command creates the "kafka.jks" file with the CA Root Certificate. Use "kafkastore" as the keystore password.
 
 <pre>
 $ keytool -keystore kafka.jks -alias CARoot -import -file acquaCA.crt
@@ -801,8 +801,8 @@ openssl s_client -debug -connect localhost:9093 -tls1
 </pre>
 
 
-## Kafka mTLS Upstream plugin with mTLS on
-1. Delete the mTLS plugin<p>
+## Kafka Upstream plugin with mTLS on
+1. Delete the original Kafka Upstream plugin<p>
 We're going to recreate the Kafka mTLS Upstram plugin to turn mTLS on:
 
 <pre>
@@ -841,13 +841,13 @@ http delete :8001/plugins/468e6c2f-8c03-4a43-9b1d-dd69cc9ae0e8
 </pre>
 
 
-2. Inject the CA Digital Certificate in Kong Enterprise
+2. Inject the CA Digital Certificate in Kong Konnect Enterprise
 <pre>
 curl -sX POST http://localhost:8001/ca_certificates -F "cert=@./acquaCA.pem"
 </pre>
 
 
-3. Inject the Kong Digital Certificate in Kong Enterprise
+3. Inject the Kong Digital Certificate in Kong Konnect Enterprise
 <pre>
 curl -sX POST http://localhost:8001/certificates \
     -F "cert=@./kong.crt" \
@@ -913,10 +913,10 @@ vary: Origin
 
 
 
-5. Enable the Kafka mTLS Upstream plugin to the Route with mTLS on<p>
+5. Enable the Kafka Upstream plugin to the Route with mTLS on<p>
 The new Kafka plugin settings include:<p>
 - The 9093 port defined by the Kafka Cluster for SSL connections<p>
-- Uses the Kong Enterprise Digital Certificate id injected previously.<p>
+- Uses the Kong Konnect Enterprise Digital Certificate id previously injected.<p>
 - All other settings remain the same
 
 <pre>
@@ -1031,3 +1031,10 @@ The consumer should show the new message
 $ kafka-console-consumer --bootstrap-server localhost:9092 --topic test --from-beginning
 {"headers":{"host":"localhost:8000","accept-encoding":"gzip, deflate","user-agent":"HTTPie\/2.3.0","accept":"*\/*","bbb":"555","connection":"keep-alive"}}
 </pre>
+
+
+## Conclusion
+
+Kong Konnect Enterprise makes it easy to integrate with Kafka Streaming Platform run services by providing consistent visibility and network traffic controls for existing Kafka topics
+
+Feel free to apply policies to the Route created in this post and experiment further implementing policies like caching, log processing, OIDC-based authentication, canary, and more with the extensive list of plugins provided by Kong.
