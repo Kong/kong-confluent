@@ -21,7 +21,7 @@ Before getting started make sure you have the following tools already installed:
 ## Kafka installation
 
 1. Create a Docker Network<p>
-We're going to create a Docker Network specifically for both Kong and Kafka:
+We're going to create a specific Docker Network for both Kong and Kafka containers:
 
 <pre>
 docker network create kong-net
@@ -30,7 +30,9 @@ docker network create kong-net
 
 
 2. Kafka Installation
-Create Zookeeper and Kafka Containers
+Create Zookeeper and Kafka Containers<p>
+The Kafka installation uses the official Docker Images provided by Confluent. You can check them out here: https://hub.docker.com/u/confluent
+
 <pre>
 docker run -d --name zookeeper -p 2181:2181 --hostname zookeeper --network kong-net confluent/zookeeper
 
@@ -39,7 +41,7 @@ docker run -d --name kafka -p 9092:9092 --hostname kafka --network kong-net --li
 
 
 3. Install local Kafka utilities<p>
-For MacOS run:
+For basic testing and event consumption install Kafka utilities locally also. For MacOS run:
 <pre>
 brew install kafka
 </pre>
@@ -52,6 +54,7 @@ $ kafka-topics --create --zookeeper localhost:2181 --replication-factor 1 --part
 Created topic test.
 </pre>
 
+Check the topic with:
 <pre>
 $ kafka-topics --zookeeper localhost:2181 --describe --topic test
 Topic: test	PartitionCount: 1	ReplicationFactor: 1	Configs: 
