@@ -1,4 +1,4 @@
-# Kong Enterprise and Kafka Upstream mTLS plugin - Docker
+# Kong Konnect Enterprise and Kafka Upstream mTLS plugin - Docker
 
 ## Overview
 Event streaming allows developers to build more scalable and loosely coupled real-time applications supporting massive concurrency demands and simplifying the construction of services.
