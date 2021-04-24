@@ -54,6 +54,7 @@ $ kafka-topics --create --zookeeper localhost:2181 --replication-factor 1 --part
 Created topic test.
 </pre>
 
+<p>
 Check the topic with:
 <pre>
 $ kafka-topics --zookeeper localhost:2181 --describe --topic test
