@@ -99,6 +99,9 @@ testing
 
 
 ## Kong Enterprise Installation
+
+In this guide we'll be using the OpenID Connect (OIDC) plug-in for Kong, which is only available for Kong Enterprise. If you don't already have a Kong Enterprise account, you can get a 30-day trial here.
+
 1. Login to Kong Bintray using your credentials
 <pre>
 docker login -u <BINTRAY_USER_ID> -p <BINTRAY_API_KEY> kong-docker-kong-enterprise-edition-docker.bintray.io
