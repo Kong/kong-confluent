@@ -1,4 +1,4 @@
-# Kong Konnect Enterprise and Kafka Upstream mTLS plugin - Dockerxxxxx
+# Kong Konnect Enterprise and Kafka Upstream mTLS plugin - Docker
 
 ## Overview
 Event streaming allows developers to build more scalable and loosely coupled real-time applications supporting massive concurrency demands and simplifying the construction of services.
@@ -34,9 +34,25 @@ Create Zookeeper and Kafka Containers<p>
 The Kafka installation uses the official Docker Images provided by Confluent. You can check them out here: https://hub.docker.com/u/confluent
 
 <pre>
-docker run -d --name zookeeper -p 2181:2181 --hostname zookeeper --network kong-net confluent/zookeeper
+docker run -d --name zookeeper -p 2181:2181 --hostname zookeeper --network kong-net -e ZOOKEEPER_CLIENT_PORT=2181 confluentinc/cp-zookeeper:7.0.1
 
-docker run -d --name kafka -p 9092:9092 --hostname kafka --network kong-net --link zookeeper:zookeeper confluent/kafka
+
+docker run -d --name kafka -p 9092:9092 --hostname kafka --network kong-net --link zookeeper:zookeeper \
+-e KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181 \
+-e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092 \
+-e KAFKA_BROKER_ID=1 \
+-e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
+confluentinc/cp-kafka:7.0.1
+
+
+docker run -d --name kafka-cc -p 9021:9021 --hostname kafka-cc --network kong-net --link zookeeper:zookeeper \
+-e CONTROL_CENTER_BOOTSTRAP_SERVERS=kafka:9092 \
+-e CONTROL_CENTER_REPLICATION_FACTOR=1 \
+-e CONTROL_CENTER_INTERNAL_TOPICS_PARTITIONS=1 \
+-e CONTROL_CENTER_MONITORING_INTERCEPTOR_TOPIC_PARTITIONS=1 \
+-e CONFLUENT_METRICS_TOPIC_REPLICATION=1 \
+-e PORT=9021 \
+confluentinc/cp-enterprise-control-center:7.0.1
 </pre>
 
 
