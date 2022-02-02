@@ -209,14 +209,14 @@ keyUsage               = digitalSignature, keyEncipherment
 </pre>
 
 
-Then create a database and serial number file, these will be used to keep track of which certificates were signed with this CA. Both of these are simply text files that reside in the same directory as your CA keys.
+2. Then create a database and serial number file, these will be used to keep track of which certificates were signed with this CA. Both of these are simply text files that reside in the same directory as your CA keys.
 
 <pre>
 echo 01 > serial.txt
 touch index.txt
 </pre>
 
-Submit the file to create the CA's PrivateKey and Digital Certificate, accepting the default values. The command will create the "AcquaCA.key" and "AcquaCA_cert.pem" files:
+3. Submit the file to create the CA's PrivateKey and Digital Certificate, accepting the default values. The command will create the "AcquaCA.key" and "AcquaCA_cert.pem" files:
 
 <pre>
 $ openssl req -x509 -config acquaCA.cnf -newkey rsa:4096 -sha256 -nodes -out AcquaCA_cert.pem -keyout AcquaCA.key -outform PEM
@@ -257,148 +257,40 @@ keytool -keystore client.truststore.jks -alias CARoot -import -file AcquaCA_cert
 </pre>
 
 
-2. Issue a Digital Certificate based on the private key<p>
-The command creates a "acquaCA.crt" file.
+
+## Kafka Digital Certificate
+
+### Create the Keystore file
+In a local directory, create a Keystore file for the Kafka Server:
 
 <pre>
-$ openssl req -x509 -new -key acquaCA.key -out acquaCA.crt
-You are about to be asked to enter information that will be incorporated
-into your certificate request.
-What you are about to enter is what is called a Distinguished Name or a DN.
-There are quite a few fields but you can leave some blank
-For some fields there will be a default value,
-If you enter '.', the field will be left blank.
------
-Country Name (2 letter code) []:BR
-State or Province Name (full name) []:Sao Paulo
-Locality Name (eg, city) []:Sao Paulo
-Organization Name (eg, company) []:Acqua Corp
-Organizational Unit Name (eg, section) []:Technology
-Common Name (eg, fully qualified host name) []:acqua.com
-Email Address []:acquaviva@uol.com.br
+$ keytool -genkey -keystore server.keystore.jks -alias localhost -validity 365 -storepass "serverpwd" -dname "CN=kafka" -keyalg RSA
+Generating 2,048 bit RSA key pair and self-signed certificate (SHA256withRSA) with a validity of 365 days
+	for: CN=kafka
 </pre>
 
-3. Checking the new CA's private key and Digital Certificate
+### Create the Certificate Signing Request
 <pre>
-$ openssl rsa -in acquaCA.key -check
-RSA key ok
-writing RSA key
------BEGIN RSA PRIVATE KEY-----
-MIIEpAIBAAKCAQEA1+8B4/fdBjnIRRc/W0HScMEpMwzNjKfE0BGbkOs+Vs16xzlW
-RkTZaL/DGFbPNJV8V0DT//5SZrwjGHXfTooS0dqpUi/c0I2fk7IFT3Rm5MhcEGHh
-/Pz6ox9zuOks0Lpp9DLZYK5NjxYcAMlV7SmRoDMCrh5kVxpfRj+sgnhMHPuSLk/x
-Y3BYuv97b5+a2pS4zSyRonMy+hynEXLByn+3iNzzKHwWAnJR0bbJcuFKGDZYJu5y
-+6r5cy0mqEU3SYU+4SPF+x/50P9tCyjkRZfxDVYJyaGXgIDD+PJi7MP4BHxR1KBV
-0RSyTzECFh206QBeuyyhaRZHw01SYCoOLmXn2wIDAQABAoIBAAZrGEdKastwlD9Z
-fYyc3EB1vV/DFakEo5j7rQAVvfieivO5BJN6IGw4pvfmPKp3dwaw6pxFVvWuyexE
-NKsE96I9OaMzwQCB9ShStk2yTAyo1/O0tR7r9hc7LBlm9OoPYG7dxBBXnf6Oza5I
-TcGK5sU4PvAl/x2HryVLZzlJkhmaYq3+KSXGqkC1Soi3zZ7hJOfPiIaQq5eOUFSi
-OSF6dMkU4IQpEgU236NJgpJdok1lMQTyiD6BvSjRdfyAaQ3wl63WdaiSdxxoJXmc
-t4QGKjG+qb3SHoL7x+Nq2HqoZBWOOYjEJ5ZocN5kQ/5LUspMeyc93uLlOcsIZCVp
-giNgsgECgYEA/S8ONtKaykuKeVqFQXEqZTFYWppKspOVJ/NDFEZURMI0wZaUwMRX
-h8lEDRx8DCBGB3B2LhxUcC3kgtoGP5q6CKWSPQjExzCDey30yGfHVdd9ZuAGP44h
-XziYo52QtElXUJUn6CLg5Z+uKapOdw+Y+ZN68Y2XLx6FYSoHmxJLOZsCgYEA2lXh
-pQWOlmcbN/ZOm9Go6MXTHpNNilvD9pUtV98qGXkqWWJilAW9olLxLV9OBmAWXyZ+
-8jTC3he7ZHe4t8Snx4XupO8vm+iZIoUhCV7oftYP5iJlrol2q9Jjv6MxU8VavhhZ
-XhlvS4ZcKIMHWHHxdG+TcbpdXPJK8Pl3JCSrDsECgYAc92c+6nV/M4lSPQMF67aY
-AT9EjmaBa9Uizvgbt7gobbevdlTqgQwqouJARcQDdyXL8Bf1SpR2iSmdtugEGuWx
-24+RoBEzYN+KFkXtL8JkldTpEjRkzRQQWt9LyNknZ0SwGYCJVIQ6gTxh0/RKNuSf
-mTn1rOdhIrLL3Q0ltsAYhQKBgQC8G+Ic23zN+Gdq/7saZLiyVD5gyWi1G/rqJ/y5
-CHytFcd2210zSv7nK66++K2wsHiV4gTdiLebwbaiCMQNEFG9hZbmY20RVoUZSLn9
-6NdG8Acir+ALUEP+JXXrVh7Znd9giHn2qNNKrqgX/0wE16bAOqE+CuMFgXsvwr7z
-VORMAQKBgQCJvDlVcYxrIOPIXGFdqoN7y3+HIHJW5T3jmd+MyM9rH06u7B3laMG4
-hm/EONjzPq1gVoQNVw4Xt4CFPG8gwb3UKE+Yo6+v7orpIanyIALQXtx/XJoIOGUU
-UEhaWlEr8WnSp/A7j8RrE195jiwnAH/OO8y5a9BJEtowZYT46ymyvQ==
------END RSA PRIVATE KEY-----
-</pre>
-
-<pre>
-$ openssl x509 -in acquaCA.crt -text -noout
-Certificate:
-    Data:
-        Version: 1 (0x0)
-        Serial Number: 9575856616369054695 (0x84e446db86c063e7)
-    Signature Algorithm: sha256WithRSAEncryption
-        Issuer: C=BR, ST=Sao Paulo, L=Sao Paulo, O=Acqua Corp, OU=Technology, CN=acqua.com/emailAddress=acquaviva@uol.com.br
-        Validity
-            Not Before: Dec 30 15:19:40 2020 GMT
-            Not After : Jan 29 15:19:40 2021 GMT
-        Subject: C=BR, ST=Sao Paulo, L=Sao Paulo, O=Acqua Corp, OU=Technology, CN=acqua.com/emailAddress=acquaviva@uol.com.br
-        Subject Public Key Info:
-            Public Key Algorithm: rsaEncryption
-                Public-Key: (2048 bit)
-                Modulus:
-                    00:d7:ef:01:e3:f7:dd:06:39:c8:45:17:3f:5b:41:
-                    d2:70:c1:29:33:0c:cd:8c:a7:c4:d0:11:9b:90:eb:
-                    3e:56:cd:7a:c7:39:56:46:44:d9:68:bf:c3:18:56:
-                    cf:34:95:7c:57:40:d3:ff:fe:52:66:bc:23:18:75:
-                    df:4e:8a:12:d1:da:a9:52:2f:dc:d0:8d:9f:93:b2:
-                    05:4f:74:66:e4:c8:5c:10:61:e1:fc:fc:fa:a3:1f:
-                    73:b8:e9:2c:d0:ba:69:f4:32:d9:60:ae:4d:8f:16:
-                    1c:00:c9:55:ed:29:91:a0:33:02:ae:1e:64:57:1a:
-                    5f:46:3f:ac:82:78:4c:1c:fb:92:2e:4f:f1:63:70:
-                    58:ba:ff:7b:6f:9f:9a:da:94:b8:cd:2c:91:a2:73:
-                    32:fa:1c:a7:11:72:c1:ca:7f:b7:88:dc:f3:28:7c:
-                    16:02:72:51:d1:b6:c9:72:e1:4a:18:36:58:26:ee:
-                    72:fb:aa:f9:73:2d:26:a8:45:37:49:85:3e:e1:23:
-                    c5:fb:1f:f9:d0:ff:6d:0b:28:e4:45:97:f1:0d:56:
-                    09:c9:a1:97:80:80:c3:f8:f2:62:ec:c3:f8:04:7c:
-                    51:d4:a0:55:d1:14:b2:4f:31:02:16:1d:b4:e9:00:
-                    5e:bb:2c:a1:69:16:47:c3:4d:52:60:2a:0e:2e:65:
-                    e7:db
-                Exponent: 65537 (0x10001)
-    Signature Algorithm: sha256WithRSAEncryption
-         37:ba:37:94:02:40:4b:23:59:04:e5:4a:da:a4:f6:4e:57:ce:
-         68:04:e9:82:5a:fc:22:96:a0:e3:3b:c4:7a:94:34:ff:73:23:
-         0b:d5:59:0b:19:4c:12:f0:0b:59:7e:e1:5e:85:1a:26:6c:37:
-         ca:5b:87:cf:5f:ba:88:3e:9e:15:e4:76:0b:0d:f8:82:eb:33:
-         28:d1:f9:5a:c5:12:21:97:22:f0:58:3e:5f:68:ac:a4:af:a7:
-         2c:cb:ae:3a:4d:16:fb:1e:11:49:5a:45:80:58:7f:28:70:c5:
-         4d:b9:2d:eb:5a:7e:93:d5:b6:92:68:2c:55:1d:b0:60:42:24:
-         7f:57:b6:48:cc:92:ec:3b:ed:ee:e7:da:2c:cf:50:af:75:64:
-         30:fb:c9:03:83:59:61:39:37:e3:d3:e6:2d:95:b2:d4:7b:a9:
-         ac:4d:e0:e8:d1:2e:a6:25:71:9b:af:e8:bb:f6:f4:7a:0b:3a:
-         fc:15:ff:a6:b2:f0:80:32:76:c2:42:23:82:f3:b9:25:ce:0b:
-         b6:51:5b:b4:f6:30:fe:cf:0f:2c:05:69:44:f4:52:e3:a5:59:
-         4c:08:1c:06:72:92:52:bf:f4:78:5a:62:12:30:57:0b:33:cf:
-         3a:c8:57:2b:15:43:5d:b9:53:b9:2f:d9:94:6d:bf:71:d5:2f:
-         dc:a4:66:77
+keytool -keystore server.keystore.jks -alias localhost -certreq -file kafka-server.csr -storepass "serverpwd"
 </pre>
 
 
-4. Issue a self-signed certificate for the CA<p>
-Create a local file named "acquaCA_csr.conf" with the "CA:TRUE" constraint
-
+### Create the Signed Server Certificate
 <pre>
-[ req ]
-distinguished_name       = req_distinguished_name
-extensions               = v3_ca
-req_extensions           = v3_ca
-
-[ v3_ca ]
-basicConstraints         = CA:TRUE
-
-[ req_distinguished_name ]
-countryName              = Country Name (2 letter code)
-countryName_default      = BR
-countryName_min          = 2
-countryName_max          = 2
-organizationName         = Organization Name (eg, company)
-organizationName_default = Acqua Corp
+openssl x509 -req -CA AcquaCA_cert.pem -CAkey AcquaCA.key -in kafka-server.csr -out kafka-server.crt -days 365 -CAcreateserial -passin pass:"serverpwd"
 </pre>
 
-<p>Submit the file to create a CSR ("Certificate signing request"), accepting the default values. The command will create a "acquaCA.csr" file:
+### Include the CA Certificate and Kafka Signed Certificate in the Keystore
 <pre>
-openssl req -new -sha256 -key acquaCA.key -nodes -out acquaCA.csr -config acquaCA_csr.conf
+$ keytool -keystore server.keystore.jks -alias CARoot -import -file AcquaCA_cert.pem -storepass "serverpwd" --noprompt
+Certificate was added to keystore
+
+$ keytool -keystore server.keystore.jks -alias localhost -import -file kafka-server.crt -storepass "serverpwd"
+Certificate reply was installed in keystore
 </pre>
 
-Issue the self-signed certificate. The command creates the "acquaCA.pem" file.
-<pre>
-$ openssl x509 -req -days 3650 -extfile acquaCA_csr.conf -extensions v3_ca -in acquaCA.csr -signkey acquaCA.key -out acquaCA.pem
-Signature ok
-subject=/C=BR/O=Acqua Corp
-Getting Private key
-</pre>
+
+
 
 
 ## Kong Enterprise Digital Certificate
