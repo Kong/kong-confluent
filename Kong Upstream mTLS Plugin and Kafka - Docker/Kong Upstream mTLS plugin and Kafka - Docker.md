@@ -867,5 +867,7 @@ X-Kong-Response-Latency: 60
 
 
 The consumer should show the new message
+<pre>
 $ kafka-console-consumer --bootstrap-server localhost:9092 --topic test --from-beginning
 {"headers":{"host":"localhost:8000","accept-encoding":"gzip, deflate","user-agent":"HTTPie/2.4.0","accept":"*/*","bbb":"555","connection":"keep-alive"}}
+</pre>
