@@ -627,108 +627,52 @@ testing
 <pre>
 openssl genrsa -out kong.key 2048
 </pre>
-Create the Kong Public Key
+
+### Create the Kong Public Key
+<pre>
 openssl rsa -in kong.key -pubout -out kong_public.key
+</pre>
 
-Create the CSR for the Kong Digital Certificate
+### Create the CSR for the Kong Digital Certificate
+<pre>
 openssl req -new -key kong.key -out kong.csr -subj "/CN=kong"
+</pre>
 
-Issue the Kong Digital Certificate
+### Issue the Kong Digital Certificate
+<pre>
 openssl x509 -req -CA AcquaCA_cert.pem -CAkey AcquaCA.key -in kong.csr -out kong.crt -days 365
-
-
-Check the Kong Enterprise Certificate
-$ openssl x509 -in kong.crt -text -noout
-Certificate:
-    Data:
-        Version: 1 (0x0)
-        Serial Number: 12953320410221318475 (0xb3c37048910f114b)
-    Signature Algorithm: sha1WithRSAEncryption
-        Issuer: C=BR, ST=Sao Paulo, L=Sao Paulo, O=Acqua Corp, OU=Technology, CN=AcquaCorp/emailAddress=acquaviva@uol.com.br
-        Validity
-            Not Before: Nov  4 20:18:40 2021 GMT
-            Not After : Nov  4 20:18:40 2022 GMT
-        Subject: CN=kong
-        Subject Public Key Info:
-            Public Key Algorithm: rsaEncryption
-                Public-Key: (2048 bit)
-                Modulus:
-                    00:f2:a5:c6:a8:ee:65:c2:9d:52:d2:71:89:64:b2:
-                    66:b8:7b:71:0a:10:60:47:ef:12:93:f0:d0:33:d0:
-                    96:dc:67:1d:ea:c3:1a:9a:4b:d1:c3:23:c9:a3:d6:
-                    2b:01:e6:2b:34:ab:12:09:ad:56:9f:11:aa:d0:4a:
-                    f3:ad:88:62:ce:bb:4a:fb:46:de:24:86:db:ae:63:
-                    39:18:31:01:69:ed:d6:67:af:79:e9:1c:fb:be:77:
-                    38:98:31:a7:b8:8d:f3:cb:4d:61:fd:57:f8:33:3c:
-                    80:09:12:ad:a2:20:d2:d5:cf:9e:92:0e:c4:cb:ff:
-                    10:d8:78:54:15:fe:3b:dd:01:d6:a3:c2:b1:0f:4a:
-                    ac:7f:fa:ec:21:70:ec:00:11:64:c8:db:2c:e6:65:
-                    70:aa:a0:e8:28:d3:66:bc:5c:a0:64:06:a6:06:ec:
-                    94:32:3f:b3:b2:0b:8d:79:5f:72:1e:30:db:c5:a5:
-                    c7:4a:93:19:a7:88:2a:1d:01:96:43:cd:f5:32:f1:
-                    40:d4:57:97:f7:e0:31:d0:b9:a6:ca:e3:ea:00:35:
-                    1b:15:c1:95:eb:f7:a9:c2:40:7e:19:3f:ce:75:60:
-                    6d:41:f6:d5:24:6c:00:9d:7a:a5:b8:af:30:55:0d:
-                    23:f4:1a:91:49:cf:eb:3a:d0:e7:c4:4c:08:87:05:
-                    7d:01
-                Exponent: 65537 (0x10001)
-    Signature Algorithm: sha1WithRSAEncryption
-         77:d1:d7:dd:9e:68:9a:01:a5:81:08:89:b5:ce:f2:03:68:5b:
-         66:2e:85:ed:1c:b0:2d:5b:74:ce:0f:28:ff:66:d8:f8:1d:50:
-         36:84:16:aa:42:75:73:22:da:03:89:ac:1f:1d:9d:80:ea:c7:
-         c8:a6:6d:6f:74:47:9c:f9:48:9d:85:c4:50:05:05:7e:5c:bc:
-         57:f0:c9:a1:50:e8:14:5c:d5:c7:b8:62:cc:b0:ef:ee:c2:4f:
-         bd:49:a0:d2:ee:d0:96:2e:0e:47:4a:1a:d9:2f:eb:9a:b9:9e:
-         f2:f8:a5:37:2b:07:4f:a3:3e:a6:5d:ff:95:bd:69:58:6d:69:
-         ae:e7:a3:5e:b4:6f:76:eb:a1:da:4b:58:89:12:8a:34:c0:99:
-         bf:3b:b4:9f:ad:ea:4c:13:a4:18:2a:02:e0:b3:14:d1:46:df:
-         82:28:57:31:bb:5c:4a:48:6e:99:db:29:6c:cb:e0:02:d6:a7:
-         37:58:b7:d9:c8:f5:ce:67:30:38:97:e3:31:88:bf:19:35:35:
-         b9:bc:44:d2:52:8a:46:fb:9d:77:83:a4:1c:cd:f2:30:47:ff:
-         0a:69:55:61:a9:46:27:78:c4:ba:43:9f:d5:ae:e2:9b:3b:b6:
-         06:c4:e6:1c:1b:a5:d4:7e:cc:48:24:26:e5:93:15:bb:a4:8c:
-         09:a8:4f:81:da:10:c8:fd:33:ff:bf:f7:de:83:e8:a1:31:ee:
-         1d:2a:09:dd:0d:40:0f:a0:ce:aa:8a:b3:cd:7d:81:51:df:d8:
-         cc:23:bb:f8:d5:cf:cf:86:e9:91:aa:2d:25:13:57:20:0b:8e:
-         64:37:88:bd:da:20:3a:cf:95:ca:15:43:7b:1b:2e:b9:be:80:
-         07:85:dd:96:e9:50:b4:3b:eb:32:c8:8b:62:7e:5a:68:0e:74:
-         2c:c9:93:1e:00:b3:14:7a:93:13:47:af:46:09:5a:a1:cc:c3:
-         25:e2:69:21:3e:cc:28:ea:cd:f2:e2:ac:9a:ff:40:58:d3:4e:
-         63:0b:61:b9:d1:f2:c9:cd:39:d5:14:1d:81:52:32:32:ca:f5:
-         08:bd:3d:40:54:72:64:47:8d:c1:80:b0:06:69:41:bb:9d:e4:
-         15:dd:cd:e5:e2:d0:b4:09:6b:06:7a:04:1e:c2:62:e1:c0:6f:
-         a2:5a:1c:1b:55:43:cb:a5:e8:93:cc:31:d2:cd:c4:3e:e5:6d:
-         40:b0:e8:5f:01:1e:e7:3c:29:bb:6b:2c:7f:71:70:7a:65:7c:
-         47:a1:19:c2:fb:c1:2d:f5:e9:29:13:17:b9:ef:82:b4:64:ec:
-         79:67:f4:87:1b:52:32:34:11:3a:d4:50:81:a6:d5:78:34:96:
-         82:91:73:fd:1a:6f:8d:90
+</pre>
 
 
 
+## Kafka Upstream plugin with mTLS on
 
-
-
-Kafka Upstream plugin with mTLS on
-Delete the mTLS plugin
+### Delete the mTLS plugin
 We're going to recreate the Kafka mTLS Upstream plugin to turn mTLS on:
 
+<pre>
 $ http :8001/plugins | jq -r .data[0].id
 b66694e7-c734-4884-95e1-7b8b5471cd86
 
 http delete :8001/plugins/b66694e7-c734-4884-95e1-7b8b5471cd86
+</pre>
 
 
-Inject the CA Digital Certificate in Kong Enterprise
+### Inject the CA Digital Certificate in Kong Enterprise
+<pre>
 curl -sX POST http://localhost:8001/ca_certificates -F "cert=@./AcquaCA_cert.pem"
+</pre>
 
-Inject the Kong Digital Certificate in Kong Enterprise
+### Inject the Kong Digital Certificate in Kong Enterprise
+<pre>
 curl -sX POST http://localhost:8001/certificates \
     -F "cert=@./kong.crt" \
     -F "key=@./kong.key"
+</pre>
 
 
-
-Check both Digital Certificates
+### Check both Digital Certificates
+<pre>
 $ http :8001/ca_certificates
 HTTP/1.1 200 OK
 Access-Control-Allow-Origin: *
@@ -783,24 +727,26 @@ vary: Origin
     ],
     "next": null
 }
+</pre>
 
 
-
-Save the Certificate Id to configure the Kafka plugin
-
+### Save the Certificate Id to configure the Kafka plugin
+<pre>
 $ http :8001/certificates | jq -r .data[0].id
 e707d119-2b1c-4ee0-8073-f5cbd3958660
+</pre>
 
 
-
-Enable the Kafka mTLS Upstream plugin to the Route with mTLS on
+### Enable the Kafka mTLS Upstream plugin to the Route with mTLS on
 The new Kafka plugin settings include:
-The 9093 port defined by the Kafka Cluster for SSL connections
-SSL config set to true
-Uses the Kong Enterprise Digital Certificate id injected previously.
+. The 9093 port defined by the Kafka Cluster for SSL connections
+. SSL config set to true
+. Uses the Kong Enterprise Digital Certificate id injected previously.
+. Asynchronous configuration
+
 All other settings remain the same
 
-Asynchronous configuration
+<pre>
 curl -X POST http://localhost:8001/routes/kafkaupstreamroute/plugins \
     --data "name=kafka-upstream" \
     --data "config.bootstrap_servers[1].host=kafka" \
@@ -823,32 +769,10 @@ curl -X POST http://localhost:8001/routes/kafkaupstreamroute/plugins \
     --data "config.producer_async=true" \
     --data "config.producer_async_flush_timeout=1000" \
     --data "config.producer_async_buffering_limits_messages_in_memory=50000"
+</pre>
 
-Synchronous configuration
-curl -X POST http://localhost:8001/routes/kafkaupstreamroute/plugins \
-    --data "name=kafka-upstream" \
-    --data "config.bootstrap_servers[1].host=kafka" \
-    --data "config.bootstrap_servers[1].port=9093" \
-    --data "config.security.ssl=true" \
-    --data "config.security.certificate_id=e707d119-2b1c-4ee0-8073-f5cbd3958660" \
-    --data "config.topic=test" \
-    --data "config.timeout=10000" \
-    --data "config.keepalive=60000" \
-    --data "config.forward_method=false" \
-    --data "config.forward_uri=false" \
-    --data "config.forward_headers=true" \
-    --data "config.forward_body=false" \
-    --data "config.producer_request_acks=1" \
-    --data "config.producer_request_timeout=2000" \
-    --data "config.producer_request_limits_messages_per_request=200" \
-    --data "config.producer_request_limits_bytes_per_request=1048576" \
-    --data "config.producer_request_retries_max_attempts=10" \
-    --data "config.producer_request_retries_backoff_timeout=100" \
-    --data "config.producer_async=false" \
-    --data "config.producer_async_flush_timeout=1000" \
-    --data "config.producer_async_buffering_limits_messages_in_memory=50000"
-
-Check the plugin
+### Check the plugin
+<pre>
 $ http :8001/plugins
 HTTP/1.1 200 OK
 Access-Control-Allow-Origin: *
@@ -920,20 +844,13 @@ vary: Origin
     ],
     "next": null
 }
+</pre>
 
 
 
 
-
-
-
-
-
-
-
-
-
-Consume the Route and check the Kafka Topic
+### Consume the Route and check the Kafka Topic
+<pre>
 $ http :8000/kafkaupstream/get bbb:555
 HTTP/1.1 200 OK
 Connection: keep-alive
@@ -946,17 +863,9 @@ X-Kong-Response-Latency: 60
 {
     "message": "message sent"
 }
-
+</pre>
 
 
 The consumer should show the new message
 $ kafka-console-consumer --bootstrap-server localhost:9092 --topic test --from-beginning
 {"headers":{"host":"localhost:8000","accept-encoding":"gzip, deflate","user-agent":"HTTPie/2.4.0","accept":"*/*","bbb":"555","connection":"keep-alive"}}
-
-
-
-
-
-
-while [ 1 ]; do curl http://localhost:8000/kafkaupstream/get -H bbb:555; sleep 1; echo; done
-
