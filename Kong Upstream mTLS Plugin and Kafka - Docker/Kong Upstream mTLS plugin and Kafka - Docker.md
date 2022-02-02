@@ -249,6 +249,12 @@ Email Address [acquaviva@uol.com.br]:
 $ keytool -keystore server.truststore.jks -alias CARoot -import -file AcquaCA_cert.pem -storepass "serverpwd" --noprompt
 </pre>
 
+If you want to check it:
+</pre>
+$ keytool -list -keystore server.truststore.jks -storepass serverpwd
+Keystore type: PKCS12
+Keystore provider: SUN
+</pre>
 
 
 ## Kafka Digital Certificate
