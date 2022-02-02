@@ -241,11 +241,6 @@ Common Name (e.g. server FQDN or YOUR name) [AcquaCorp]:
 Email Address [acquaviva@uol.com.br]:
 </pre>
 
-### Insert CA Digital Certificate in Kafka Server Trust Store
-<pre>
-$ keytool -keystore server.truststore.jks -alias CARoot -import -file AcquaCA_cert.pem -storepass "serverpwd" --noprompt
-Certificate was added to keystore
-</pre>
 
 
 
@@ -286,132 +281,77 @@ Certificate reply was installed in keystore
 
 
 
-## Kong Enterprise Digital Certificate
-1. Issue a Private Key for Kong Konnect Enterprise<p>
-The command creates the "kong.key" file.
+## Kafka with mTLS on
+
+### Delete Kafka Container
+
 <pre>
-openssl genrsa -out kong.key
+docker stop kafka
+docker container rm kafka -v
 </pre>
 
-2. Issue a CSR (Certificate Signing Request) for the Kong Konnect Enterprise Digital Certificate<p>
-The command creates the "kong.csr" file.
+### Create a Kafka credentials file
 <pre>
-$ openssl req -new -key kong.key -out kong.csr
-You are about to be asked to enter information that will be incorporated
-into your certificate request.
-What you are about to enter is what is called a Distinguished Name or a DN.
-There are quite a few fields but you can leave some blank
-For some fields there will be a default value,
-If you enter '.', the field will be left blank.
------
-Country Name (2 letter code) []:BR
-State or Province Name (full name) []:Sao Paulo
-Locality Name (eg, city) []:Sao Paulo
-Organization Name (eg, company) []:Kong Corp
-Organizational Unit Name (eg, section) []:Technology
-Common Name (eg, fully qualified host name) []:kong.com
-Email Address []:acquaviva@uol.com.br
-
-Please enter the following 'extra' attributes
-to be sent with your certificate request
-A challenge password []:kong
-</pre>
-
-3. Issue the Kong Konnect Enterprise Digital Certificate<p>
-The command creates the "kong.crt" file.
-<pre>
-$ openssl x509 -req -in kong.csr -days 3650 -sha1 -CAcreateserial -CA acquaCA.crt -CAkey acquaCA.key -out kong.crt
-Signature ok
-subject=/C=BR/ST=Sao Paulo/L=Sao Paulo/O=Kong Corp/OU=Technology/CN=kong.com/emailAddress=acquaviva@uol.com.br
-Getting CA Private Key
-</pre>
-
-4. Check the Kong Konnect Enterprise Certificate
-<pre>
-$ openssl x509 -in kong.crt -text -noout
-Certificate:
-    Data:
-        Version: 1 (0x0)
-        Serial Number: 17102241651444505032 (0xed575e2ba13d59c8)
-    Signature Algorithm: sha1WithRSAEncryption
-        Issuer: C=BR, ST=Sao Paulo, L=Sao Paulo, O=Acqua Corp, OU=Technology, CN=acqua.com/emailAddress=acquaviva@uol.com.br
-        Validity
-            Not Before: Dec 30 15:41:31 2020 GMT
-            Not After : Dec 28 15:41:31 2030 GMT
-        Subject: C=BR, ST=Sao Paulo, L=Sao Paulo, O=Kong Corp, OU=Technology, CN=kong.com/emailAddress=acquaviva@uol.com.br
-        Subject Public Key Info:
-            Public Key Algorithm: rsaEncryption
-                Public-Key: (2048 bit)
-                Modulus:
-                    00:a9:2b:7b:ea:c3:32:e6:fe:f5:76:99:bb:5d:fb:
-                    72:1d:64:a6:6f:5f:04:c6:fb:23:34:65:66:cc:db:
-                    06:24:c7:b8:14:2e:94:43:ac:5e:2f:b6:f8:37:e5:
-                    9c:c7:a8:79:f8:63:38:6c:1a:0e:0e:3b:b4:87:ed:
-                    2d:36:1b:64:ea:48:cf:aa:88:f9:be:78:4d:f8:87:
-                    68:2f:d7:7b:26:c4:ce:e0:ba:df:9f:06:c8:13:11:
-                    57:18:1c:c0:ef:e2:ad:90:dd:e3:84:f4:69:4a:c1:
-                    47:6c:1f:09:f2:03:34:70:56:94:a6:32:1a:78:89:
-                    f9:f7:64:af:1d:08:c1:b7:0a:d2:a3:e8:2a:90:a5:
-                    91:71:29:b7:c0:01:07:e7:91:64:18:cc:b2:16:45:
-                    8e:f4:ed:84:52:d1:51:69:4d:1d:2b:c8:8a:90:b5:
-                    bc:9f:62:71:9f:7a:02:a8:b1:ea:5c:b2:30:5d:2b:
-                    32:96:59:5a:1a:5a:d5:13:9e:10:d7:09:29:36:bd:
-                    a8:31:ec:e9:a4:2a:8a:00:30:62:7a:a6:be:0e:07:
-                    65:94:fe:7e:40:0c:12:02:e5:c8:23:67:3f:fe:4e:
-                    cc:72:21:8c:1c:79:a7:b0:ec:e2:c0:dd:11:09:e2:
-                    f6:6b:5c:38:db:58:70:54:37:d4:f7:c3:bf:49:23:
-                    b7:b5
-                Exponent: 65537 (0x10001)
-    Signature Algorithm: sha1WithRSAEncryption
-         14:be:e7:2d:7c:d2:cc:96:44:52:0e:fa:35:7e:61:95:41:57:
-         3a:b3:c1:6f:15:54:86:a3:4c:e7:ba:d8:f5:70:84:40:d3:fb:
-         5c:7a:3e:86:d2:a6:de:77:7b:0b:19:f4:b6:d1:a4:00:36:a3:
-         1a:f6:d0:a9:74:af:a2:9d:39:cd:b4:1c:54:cd:e3:e7:4e:d2:
-         c8:34:cc:27:e6:6c:d9:3e:aa:cf:d0:1a:cb:db:24:70:fd:2d:
-         49:ca:85:6b:a2:46:98:82:29:22:87:a2:50:60:60:50:40:2b:
-         7d:ad:11:db:da:da:c0:2d:71:a5:5b:c7:f6:38:ad:68:d0:49:
-         02:49:91:58:62:4b:ef:ee:66:6d:03:1b:ba:4c:5f:0c:c2:92:
-         cd:2c:99:4c:0c:8f:60:54:18:1a:c6:1b:72:36:ec:a1:61:ef:
-         56:49:75:ac:28:9a:a9:69:d7:3b:9e:5e:b4:9d:5b:41:1a:e7:
-         9a:5b:bd:c9:3c:27:76:42:02:87:f9:9a:62:2b:e3:28:a5:78:
-         13:26:57:29:a6:21:e5:85:84:aa:f8:33:b1:dd:7a:a7:b0:37:
-         36:d6:d6:0b:50:96:6c:2c:fe:f7:9b:2f:2a:f0:fe:90:94:63:
-         6a:d9:e6:a6:fb:49:e1:8d:21:d9:f8:f0:eb:72:d3:23:08:a7:
-         42:77:d7:f8
+echo "serverpwd" > keystore_creds
 </pre>
 
 
-## Kong Enterprise Installation
+### Start new Container
+The new Kafka container has two new settings:
+SSL: it enables the specific 9093 port and requests for SSL Client Authentication
+It sets all specific Kafka parameters related to the .jks file we crafted before.
 
-In this guide we'll be using the Kafka Upstream plugin, which is only available for Kong Enterprise. If you don't already have a Kong Enterprise account, you can get a 30-day trial here: https://konghq.com/get-started/#free-trial
-
-1. Login to Kong Bintray using your credentials
 <pre>
-docker login -u <BINTRAY_USER_ID> -p <BINTRAY_API_KEY> kong-docker-kong-enterprise-edition-docker.bintray.io
+docker run -d --name kafka -p 9092:9092 -p 9093:9093 --hostname kafka --network kong-net --link zookeeper:zookeeper \
+-e KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181 \
+-e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,SSL://kafka:9093 \
+-e KAFKA_BROKER_ID=1 \
+-e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
+-e KAFKA_LISTENERS=PLAINTEXT://:9092,SSL://:9093 \
+-e KAFKA_SSL_TRUSTSTORE_LOCATION=/etc/kafka/secrets \
+-e KAFKA_SSL_TRUSTSTORE_FILENAME=server.truststore.jks \
+-e KAFKA_SSL_TRUSTSTORE_PASSWORD=serverpwd \
+-e KAFKA_SSL_KEYSTORE_LOCATION=/etc/kafka/secrets \
+-e KAFKA_SSL_KEYSTORE_FILENAME=server.keystore.jks \
+-e KAFKA_SSL_KEYSTORE_PASSWORD=serverpwd \
+-e KAFKA_SSL_KEY_PASSWORD=serverpwd \
+-e KAFKA_SSL_KEY_CREDENTIALS=keystore_creds \
+-e KAFKA_SSL_KEYSTORE_CREDENTIALS=keystore_creds \
+-e KAFKA_SSL_TRUSTSTORE_CREDENTIALS=keystore_creds \
+-e KAFKA_SSL_CLIENT_AUTH=required \
+-e KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM= \
+-v /Users/claudio/kong/tech/Confluent/mTLS-SASL/server.truststore.jks:/etc/kafka/secrets/server.truststore.jks:ro \
+-v /Users/claudio/kong/tech/Confluent/mTLS-SASL/server.keystore.jks:/etc/kafka/secrets/server.keystore.jks:ro \
+-v /Users/claudio/kong/tech/Confluent/mTLS-SASL/keystore_creds:/etc/kafka/secrets/keystore_creds:ro \
+confluentinc/cp-kafka:7.0.1
 </pre>
 
-2. Define a environment variable with your Kong Enterprise license
+
+### Kong Enterprise Installation
+
+Set Environment Variable with license
 <pre>
 export KONG_LICENSE_DATA='{"license":{"version":1,"signature":"YYYYY","payload":{"customer":"Kong_SE_Demo_H1FY22","license_creation_date":"2020-11-30","product_subscription":"Kong Enterprise Edition","support_plan":"None","admin_seats":"5","dataplanes":"5","license_expiration_date":"2021-06-30","license_key":"XXXXX"}}}'
 </pre>
 
-3. Pull Kong Enterprise Image
+### Pull Kong Enterprise Image
 <pre>
-docker pull kong-docker-kong-gateway-docker.bintray.io/kong-enterprise-edition:2.4.0.0-alpine
+docker pull kong/kong-gateway:2.7.1.0-alpine
 
-docker tag kong-docker-kong-gateway-docker.bintray.io/kong-enterprise-edition:2.4.0.0-alpine kong-ee
+docker tag kong/kong-gateway:2.7.1.0-alpine kong-ee
 </pre>
 
-4. Install and initialize the Database
+
+### Install and initialize the Database
 <pre>
-docker run -d --name kong-ee-database \
+docker run -d --network kong-net --name kong-ee-database \
    -p 5432:5432 \
    -e "POSTGRES_USER=kong" \
    -e "POSTGRES_DB=kong" \
    -e "POSTGRES_HOST_AUTH_METHOD=trust" \
    postgres:latest
 
-docker run --rm --link kong-ee-database:kong-ee-database \
+docker run --rm --network kong-net --link kong-ee-database:kong-ee-database \
    -e "KONG_DATABASE=postgres" -e "KONG_PG_HOST=kong-ee-database" \
    -e "KONG_LICENSE_DATA=$KONG_LICENSE_DATA" \
    -e "KONG_PASSWORD=kong" \
@@ -419,9 +359,10 @@ docker run --rm --link kong-ee-database:kong-ee-database \
    kong-ee kong migrations bootstrap
 </pre>
 
-5. Start Kong Enterprise container
+
+### Start Kong Enterprise
 <pre>
-docker run -d --name kong-ee --link kong-ee-database:kong-ee-database \
+docker run -d --network kong-net --name kong-ee --link kong-ee-database:kong-ee-database \
   -e "KONG_DATABASE=postgres" \
   -e "KONG_PG_HOST=kong-ee-database" \
   -e "KONG_PROXY_ACCESS_LOG=/dev/stdout" \
@@ -437,6 +378,7 @@ docker run -d --name kong-ee --link kong-ee-database:kong-ee-database \
   -e "KONG_PORTAL_GUI_HOST=localhost:8003" \
   -e "KONG_PORTAL_SESSION_CONF={\"cookie_name\": \"portal_session\", \"secret\": \"portal_secret\", \"storage\":\"kong\", \"cookie_secure\": false}" \
   -e "KONG_LICENSE_DATA=$KONG_LICENSE_DATA" \
+  -e "KONG_LOG_LEVEL=debug" \
   -p 8000:8000 \
   -p 8443:8443 \
   -p 8001:8001 \
@@ -450,45 +392,34 @@ docker run -d --name kong-ee --link kong-ee-database:kong-ee-database \
   kong-ee
 </pre>
 
-6. Test the installation
+### Test the installation
 <pre>
-docker network connect kong-net kong-ee
-docker network connect kong-net kong-ee-database
-
-http --verify=no https://localhost:8443
-http --verify=no https://localhost:8444
-
-docker stop kong-ee
-docker stop kong-ee-database
-
-docker start kong-ee-database
-docker start kong-ee
-
-http :8001 | jq .version
+http :8001 | jq -r .version
 </pre>
 
-## Testing Kafka Upstream plugin with mTLS off
-1. Create Kong Service and Route
-<pre>
-http :8001/services name=httpbinservice url='http://httpbin.org'
 
-http :8001/services/httpbinservice/routes name='httpbinroute' paths:='["/httpbin"]'
+## Kong Enterprise Kafka Upstream plugin
+### Create Kong Service and Route
+<pre>
+http :8001/services name=kafkaupstreamservice url='http://httpbin.org'
+
+http :8001/services/kafkaupstreamservice/routes name='kafkaupstreamroute' paths:='["/kafkaupstream"]'
 </pre>
 
-2. Test the Route:
+### Test the Route:
 <pre>
-$ http :8000/httpbin/get
+$ http :8000/kafkaupstream/get
 HTTP/1.1 200 OK
 Access-Control-Allow-Credentials: true
 Access-Control-Allow-Origin: *
 Connection: keep-alive
-Content-Length: 426
+Content-Length: 436
 Content-Type: application/json
-Date: Wed, 30 Dec 2020 14:34:23 GMT
+Date: Fri, 17 Dec 2021 13:34:01 GMT
 Server: gunicorn/19.9.0
-Via: kong/2.2.0.0-enterprise-edition
-X-Kong-Proxy-Latency: 71
-X-Kong-Upstream-Latency: 324
+Via: kong/2.7.0.0-enterprise-edition
+X-Kong-Proxy-Latency: 90
+X-Kong-Upstream-Latency: 307
 
 {
     "args": {},
@@ -496,22 +427,21 @@ X-Kong-Upstream-Latency: 324
         "Accept": "*/*",
         "Accept-Encoding": "gzip, deflate",
         "Host": "httpbin.org",
-        "User-Agent": "HTTPie/2.3.0",
-        "X-Amzn-Trace-Id": "Root=1-5fec8fef-4b84bf6f1715fb2f4913f1c6",
+        "User-Agent": "HTTPie/2.6.0",
+        "X-Amzn-Trace-Id": "Root=1-61bc91c9-5c06eb442f037ee02bebb4c2",
         "X-Forwarded-Host": "localhost",
-        "X-Forwarded-Path": "/httpbin/get",
-        "X-Forwarded-Prefix": "/httpbin"
+        "X-Forwarded-Path": "/kafkaupstream/get",
+        "X-Forwarded-Prefix": "/kafkaupstream"
     },
-    "origin": "172.17.0.1, 186.204.132.234",
+    "origin": "172.18.0.1, 186.204.48.46",
     "url": "http://localhost/get"
 }
 </pre>
 
-3. Configure the plugin
 
-Notice we're referring to the previously started Kafka container with the settings "host" and "port". Likewise we're going to produce and publish events to the existing topic "test". Configure the other parameters to fit your needs. The following configuration represents an example only.
+### Kafka Upstream plugin with mTLS off
 <pre>
-curl -X POST http://localhost:8001/routes/httpbinroute/plugins \
+curl -X POST http://localhost:8001/routes/kafkaupstreamroute/plugins \
     --data "name=kafka-upstream" \
     --data "config.bootstrap_servers[1].host=kafka" \
     --data "config.bootstrap_servers[1].port=9092" \
@@ -534,32 +464,32 @@ curl -X POST http://localhost:8001/routes/httpbinroute/plugins \
 </pre>
 
 
-4. Check the Route
+### Check the Route
 <pre>
-$ http :8001/routes/httpbinroute
+$ http :8001/routes/kafkaupstreamroute
 HTTP/1.1 200 OK
 Access-Control-Allow-Origin: *
 Connection: keep-alive
-Content-Length: 488
+Content-Length: 499
 Content-Type: application/json; charset=utf-8
-Date: Wed, 30 Dec 2020 14:54:47 GMT
-Server: kong/2.2.0.0-enterprise-edition
-X-Kong-Admin-Latency: 12
-X-Kong-Admin-Request-ID: KYQftUcK2y22TmKbyJD6s7iB26S8wUYa
+Date: Fri, 17 Dec 2021 13:34:33 GMT
+Server: kong/2.7.0.0-enterprise-edition
+X-Kong-Admin-Latency: 6
+X-Kong-Admin-Request-ID: Ifve1EHUpMyhOl6i5q40UETkZoReoKSO
 vary: Origin
 
 {
-    "created_at": 1609338844,
+    "created_at": 1639748036,
     "destinations": null,
     "headers": null,
     "hosts": null,
     "https_redirect_status_code": 426,
-    "id": "b4fcb711-b8dc-467b-955a-d231c973d932",
+    "id": "a33911db-1a4a-49bc-8ffd-f6f499b33b53",
     "methods": null,
-    "name": "httpbinroute",
+    "name": "kafkaupstreamroute",
     "path_handling": "v0",
     "paths": [
-        "/httpbin"
+        "/kafkaupstream"
     ],
     "preserve_host": false,
     "protocols": [
@@ -570,40 +500,46 @@ vary: Origin
     "request_buffering": true,
     "response_buffering": true,
     "service": {
-        "id": "72cefabd-0200-4ddf-b000-7cc95410fd03"
+        "id": "a2a62b08-60dd-4613-b183-fcd9f1c47648"
     },
     "snis": null,
     "sources": null,
     "strip_path": true,
     "tags": null,
-    "updated_at": 1609338844
+    "updated_at": 1639748036
 }
 </pre>
 
-5. Check the Plugin
+
+### Check the Plugin
 <pre>
 $ http :8001/plugins
 HTTP/1.1 200 OK
 Access-Control-Allow-Origin: *
 Connection: keep-alive
-Content-Length: 879
+Content-Length: 1007
 Content-Type: application/json; charset=utf-8
-Date: Wed, 30 Dec 2020 14:55:31 GMT
-Server: kong/2.2.0.0-enterprise-edition
-X-Kong-Admin-Latency: 4
-X-Kong-Admin-Request-ID: vfgG9hNGaaS5bi66H9jb2CxozDItEYM7
+Date: Fri, 17 Dec 2021 13:34:56 GMT
+Server: kong/2.7.0.0-enterprise-edition
+X-Kong-Admin-Latency: 2
+X-Kong-Admin-Request-ID: 82ePkc3DhpnjHyv11xl4efVq3KKrvzoC
 vary: Origin
 
 {
     "data": [
         {
             "config": {
+                "authentication": {
+                    "mechanism": null,
+                    "password": null,
+                    "strategy": null,
+                    "tokenauth": null,
+                    "user": null
+                },
                 "bootstrap_servers": [
                     {
-                        "certificate_id": null,
                         "host": "kafka",
-                        "port": 9092,
-                        "tls_enable": false
+                        "port": 9092
                     }
                 ],
                 "forward_body": false,
@@ -611,6 +547,7 @@ vary: Origin
                 "forward_method": false,
                 "forward_uri": false,
                 "keepalive": 60000,
+                "keepalive_enabled": false,
                 "producer_async": true,
                 "producer_async_buffering_limits_messages_in_memory": 50000,
                 "producer_async_flush_timeout": 1000,
@@ -620,13 +557,17 @@ vary: Origin
                 "producer_request_retries_backoff_timeout": 100,
                 "producer_request_retries_max_attempts": 10,
                 "producer_request_timeout": 2000,
+                "security": {
+                    "certificate_id": null,
+                    "ssl": null
+                },
                 "timeout": 10000,
                 "topic": "test"
             },
             "consumer": null,
-            "created_at": 1609340041,
+            "created_at": 1639748068,
             "enabled": true,
-            "id": "5a32f7de-132b-42c2-aea7-7b35450970c7",
+            "id": "b66694e7-c734-4884-95e1-7b8b5471cd86",
             "name": "kafka-upstream",
             "protocols": [
                 "grpc",
@@ -635,7 +576,7 @@ vary: Origin
                 "https"
             ],
             "route": {
-                "id": "b4fcb711-b8dc-467b-955a-d231c973d932"
+                "id": "a33911db-1a4a-49bc-8ffd-f6f499b33b53"
             },
             "service": null,
             "tags": null
@@ -645,7 +586,8 @@ vary: Origin
 }
 </pre>
 
-6. Consume the Route and check the Kafka Topic<p>
+
+### Consume the Route and check the Kafka Topic
 Start the Kafka consumer on one local terminal:
 <pre>
 $ kafka-console-consumer --bootstrap-server localhost:9092 --topic test --from-beginning
@@ -654,303 +596,217 @@ testing
 
 On another terminal send a request to consume the Route:
 <pre>
-$ http :8000/httpbin/get aaa:444
+$ http :8000/kafkaupstream/get aaa:444
 HTTP/1.1 200 OK
 Connection: keep-alive
 Content-Length: 26
 Content-Type: application/json; charset=utf-8
-Date: Wed, 30 Dec 2020 14:59:20 GMT
-Server: kong/2.2.0.0-enterprise-edition
-X-Kong-Response-Latency: 30
+Date: Fri, 17 Dec 2021 13:35:39 GMT
+Server: kong/2.7.0.0-enterprise-edition
+X-Kong-Response-Latency: 60
 
 {
     "message": "message sent"
 }
 </pre>
 
+
 The consumer should show the new message
 <pre>
 $ kafka-console-consumer --bootstrap-server localhost:9092 --topic test --from-beginning
 testing
-{"headers":{"host":"localhost:8000","accept-encoding":"gzip, deflate","user-agent":"HTTPie\/2.3.0","accept":"*\/*","aaa":"444","connection":"keep-alive"}}
+{"headers":{"connection":"keep-alive","accept-encoding":"gzip, deflate","accept":"*/*","host":"localhost:8000","user-agent":"HTTPie/2.6.0","aaa":"444"}}
 </pre>
 
 
-## Kafka Digital Certificate
-With the Kafka Digital Certificate issued, we're going to craft a ".jks" file to be used by Kafka Cluster.
 
-1. Create the Truststore and Keystore for all brokers<p>
-The command creates the "kafka.jks" file with the CA Root Certificate. Use "kafkastore" as the keystore password.
 
+## Kong Enterprise Digital Certificates
+
+### Create the Kong Private Key
 <pre>
-$ keytool -keystore kafka.jks -alias CARoot -import -file acquaCA.crt
-Enter keystore password:  
-Re-enter new password: 
-Owner: EMAILADDRESS=acquaviva@uol.com.br, CN=acqua.com, OU=Technology, O=Acqua Corp, L=Sao Paulo, ST=Sao Paulo, C=BR
-Issuer: EMAILADDRESS=acquaviva@uol.com.br, CN=acqua.com, OU=Technology, O=Acqua Corp, L=Sao Paulo, ST=Sao Paulo, C=BR
-Serial number: 84e446db86c063e7
-Valid from: Wed Dec 30 13:19:40 BRST 2020 until: Fri Jan 29 13:19:40 BRST 2021
-Certificate fingerprints:
-	 SHA1: 19:E9:EF:EB:48:DE:67:CF:59:19:93:6C:E3:9D:19:15:8C:EB:48:BA
-	 SHA256: 97:B1:E9:03:5E:2B:D6:1A:0A:BA:F9:29:1B:5D:35:73:E0:D8:EB:72:DA:39:33:C2:14:24:86:5F:34:33:60:19
-Signature algorithm name: SHA256withRSA
-Subject Public Key Algorithm: 2048-bit RSA key
-Version: 1
-Trust this certificate? [no]:  yes
-Certificate was added to keystore
+openssl genrsa -out kong.key 2048
 </pre>
+Create the Kong Public Key
+openssl rsa -in kong.key -pubout -out kong_public.key
 
-2. Issue a Kafka Private Key
-<pre>
-$ keytool -keystore kafka.jks -alias kafka -validity 365 -genkey -keyalg RSA -ext SAN=DNS:kafka.com
-Enter keystore password:  
-What is your first and last name?
-  [Unknown]:  Claudio Acquaviva
-What is the name of your organizational unit?
-  [Unknown]:  Technology
-What is the name of your organization?
-  [Unknown]:  Kafka Corp
-What is the name of your City or Locality?
-  [Unknown]:  Sao Paulo
-What is the name of your State or Province?
-  [Unknown]:  Sao Paulo
-What is the two-letter country code for this unit?
-  [Unknown]:  BR
-Is CN=Claudio Acquaviva, OU=Technology, O=Kafka Corp, L=Sao Paulo, ST=Sao Paulo, C=BR correct?
-  [no]:  yes
+Create the CSR for the Kong Digital Certificate
+openssl req -new -key kong.key -out kong.csr -subj "/CN=kong"
 
-Generating 2,048 bit RSA key pair and self-signed certificate (SHA256withRSA) with a validity of 365 days
-	for: CN=Claudio Acquaviva, OU=Technology, O=Kafka Corp, L=Sao Paulo, ST=Sao Paulo, C=BR
-</pre>
+Issue the Kong Digital Certificate
+openssl x509 -req -CA AcquaCA_cert.pem -CAkey AcquaCA.key -in kong.csr -out kong.crt -days 365
 
-3. Issue a CSR (Certificate Signing Request) for the Kafka Digital Certificate<p>
-The command creates the "kafka.csr" file. Use "kafkastore" as the keystore password.
 
-<pre>
-$ keytool -keystore kafka.jks -alias kafka -certreq -file kafka.csr
-</pre>
-
-4. Sign the Kafka broker's Certificate
-<pre>
-$ openssl x509 -req -CA acquaCA.crt -CAkey acquaCA.key -in kafka.csr -out kafka.crt -days 365 -CAcreateserial
-Signature ok
-subject=/C=BR/ST=Sao Paulo/L=Sao Paulo/O=Kafka Corp/OU=Technology/CN=Claudio Acquaviva
-Getting CA Private Key
-</pre>
-
-5. Check the Kafka Certificate
-<pre>
-$ openssl x509 -in kafka.crt -text -noout
+Check the Kong Enterprise Certificate
+$ openssl x509 -in kong.crt -text -noout
 Certificate:
     Data:
         Version: 1 (0x0)
-        Serial Number: 17102241651444505035 (0xed575e2ba13d59cb)
+        Serial Number: 12953320410221318475 (0xb3c37048910f114b)
     Signature Algorithm: sha1WithRSAEncryption
-        Issuer: C=BR, ST=Sao Paulo, L=Sao Paulo, O=Acqua Corp, OU=Technology, CN=acqua.com/emailAddress=acquaviva@uol.com.br
+        Issuer: C=BR, ST=Sao Paulo, L=Sao Paulo, O=Acqua Corp, OU=Technology, CN=AcquaCorp/emailAddress=acquaviva@uol.com.br
         Validity
-            Not Before: Dec 31 12:47:07 2020 GMT
-            Not After : Dec 31 12:47:07 2021 GMT
-        Subject: C=BR, ST=Sao Paulo, L=Sao Paulo, O=Kafka Corp, OU=Technology, CN=Claudio Acquaviva
+            Not Before: Nov  4 20:18:40 2021 GMT
+            Not After : Nov  4 20:18:40 2022 GMT
+        Subject: CN=kong
         Subject Public Key Info:
             Public Key Algorithm: rsaEncryption
                 Public-Key: (2048 bit)
                 Modulus:
-                    00:8f:ee:f1:50:a4:43:53:6c:41:26:f5:10:88:cc:
-                    fd:ba:6d:06:07:23:92:2f:39:49:d8:e0:c5:4f:a1:
-                    44:9b:7d:2a:f1:c0:35:8c:60:a5:d1:58:91:9b:7e:
-                    86:c8:32:49:28:98:03:37:50:2f:c7:76:6d:8d:b8:
-                    cc:ad:89:86:46:bf:9e:e4:f1:bb:b2:d7:bd:d2:88:
-                    fe:93:d8:8c:99:a2:bf:17:f2:93:b6:56:81:51:c1:
-                    30:fe:60:04:62:60:de:07:bb:1f:4c:56:a5:5f:e0:
-                    f4:06:35:f3:e4:92:aa:67:4a:ea:c4:49:3c:ea:47:
-                    86:bd:9c:59:b4:fe:08:4e:ff:3a:9e:fd:92:07:34:
-                    5b:6e:2a:f1:6b:5f:59:3e:ba:08:a6:46:26:56:e5:
-                    58:b6:d2:dc:f0:44:ed:9c:cb:6e:6c:70:ee:0f:f2:
-                    6c:5e:44:8d:ee:c2:33:e4:01:79:6d:6e:96:69:f5:
-                    db:51:75:36:2c:3e:bb:13:6e:99:f2:c1:c3:57:17:
-                    9c:94:91:14:94:bb:f7:e2:5e:b3:b8:e3:e7:e2:f1:
-                    92:de:4a:e8:07:aa:67:6b:f9:31:8a:39:0c:ac:02:
-                    b6:c9:cd:46:44:4e:aa:d5:a7:cb:54:d9:50:7f:a2:
-                    04:5f:42:c9:70:18:99:25:8b:6b:e4:a4:27:e4:4d:
-                    79:4d
+                    00:f2:a5:c6:a8:ee:65:c2:9d:52:d2:71:89:64:b2:
+                    66:b8:7b:71:0a:10:60:47:ef:12:93:f0:d0:33:d0:
+                    96:dc:67:1d:ea:c3:1a:9a:4b:d1:c3:23:c9:a3:d6:
+                    2b:01:e6:2b:34:ab:12:09:ad:56:9f:11:aa:d0:4a:
+                    f3:ad:88:62:ce:bb:4a:fb:46:de:24:86:db:ae:63:
+                    39:18:31:01:69:ed:d6:67:af:79:e9:1c:fb:be:77:
+                    38:98:31:a7:b8:8d:f3:cb:4d:61:fd:57:f8:33:3c:
+                    80:09:12:ad:a2:20:d2:d5:cf:9e:92:0e:c4:cb:ff:
+                    10:d8:78:54:15:fe:3b:dd:01:d6:a3:c2:b1:0f:4a:
+                    ac:7f:fa:ec:21:70:ec:00:11:64:c8:db:2c:e6:65:
+                    70:aa:a0:e8:28:d3:66:bc:5c:a0:64:06:a6:06:ec:
+                    94:32:3f:b3:b2:0b:8d:79:5f:72:1e:30:db:c5:a5:
+                    c7:4a:93:19:a7:88:2a:1d:01:96:43:cd:f5:32:f1:
+                    40:d4:57:97:f7:e0:31:d0:b9:a6:ca:e3:ea:00:35:
+                    1b:15:c1:95:eb:f7:a9:c2:40:7e:19:3f:ce:75:60:
+                    6d:41:f6:d5:24:6c:00:9d:7a:a5:b8:af:30:55:0d:
+                    23:f4:1a:91:49:cf:eb:3a:d0:e7:c4:4c:08:87:05:
+                    7d:01
                 Exponent: 65537 (0x10001)
     Signature Algorithm: sha1WithRSAEncryption
-         a2:14:bf:dc:82:58:03:0a:2a:37:c1:f8:76:98:95:54:e6:31:
-         81:9b:64:e1:1a:32:cc:04:91:78:17:40:41:40:0d:f5:2b:0e:
-         4d:2c:c4:31:33:fa:01:da:a1:a9:de:9c:dd:61:b7:8d:c6:03:
-         7b:3e:62:78:45:39:31:0f:f8:5d:50:66:bf:8e:90:78:05:38:
-         2e:bd:65:28:f2:96:9c:7a:f2:b8:9c:93:1d:d5:04:64:ed:81:
-         19:4b:c6:91:ff:ba:66:bf:31:d2:1f:cb:ca:aa:34:a5:23:b0:
-         27:af:ff:54:80:b7:16:1c:db:7e:01:2e:97:69:f5:7c:1f:d9:
-         1e:37:a9:04:e6:57:86:12:5d:16:8d:0b:77:53:1f:1d:7d:a3:
-         41:1a:80:c7:76:5d:3e:3a:e1:6a:65:1e:c9:51:12:2a:4b:9d:
-         79:59:80:19:ff:93:cb:4b:19:60:a8:b8:19:5b:a1:af:f2:3c:
-         8e:ae:4d:a9:70:5f:1f:10:ec:85:a8:10:eb:8e:bf:23:40:9f:
-         26:86:e6:84:a9:ad:6e:d4:8c:1b:dc:9c:ae:b0:de:91:ae:20:
-         16:bf:26:9f:f7:37:f1:8d:c6:a1:56:12:ab:48:ca:99:0e:5f:
-         4c:92:4f:c8:74:26:b9:57:3a:43:2a:cd:d3:fb:19:74:8c:56:
-         32:81:99:6b
-</pre>
+         77:d1:d7:dd:9e:68:9a:01:a5:81:08:89:b5:ce:f2:03:68:5b:
+         66:2e:85:ed:1c:b0:2d:5b:74:ce:0f:28:ff:66:d8:f8:1d:50:
+         36:84:16:aa:42:75:73:22:da:03:89:ac:1f:1d:9d:80:ea:c7:
+         c8:a6:6d:6f:74:47:9c:f9:48:9d:85:c4:50:05:05:7e:5c:bc:
+         57:f0:c9:a1:50:e8:14:5c:d5:c7:b8:62:cc:b0:ef:ee:c2:4f:
+         bd:49:a0:d2:ee:d0:96:2e:0e:47:4a:1a:d9:2f:eb:9a:b9:9e:
+         f2:f8:a5:37:2b:07:4f:a3:3e:a6:5d:ff:95:bd:69:58:6d:69:
+         ae:e7:a3:5e:b4:6f:76:eb:a1:da:4b:58:89:12:8a:34:c0:99:
+         bf:3b:b4:9f:ad:ea:4c:13:a4:18:2a:02:e0:b3:14:d1:46:df:
+         82:28:57:31:bb:5c:4a:48:6e:99:db:29:6c:cb:e0:02:d6:a7:
+         37:58:b7:d9:c8:f5:ce:67:30:38:97:e3:31:88:bf:19:35:35:
+         b9:bc:44:d2:52:8a:46:fb:9d:77:83:a4:1c:cd:f2:30:47:ff:
+         0a:69:55:61:a9:46:27:78:c4:ba:43:9f:d5:ae:e2:9b:3b:b6:
+         06:c4:e6:1c:1b:a5:d4:7e:cc:48:24:26:e5:93:15:bb:a4:8c:
+         09:a8:4f:81:da:10:c8:fd:33:ff:bf:f7:de:83:e8:a1:31:ee:
+         1d:2a:09:dd:0d:40:0f:a0:ce:aa:8a:b3:cd:7d:81:51:df:d8:
+         cc:23:bb:f8:d5:cf:cf:86:e9:91:aa:2d:25:13:57:20:0b:8e:
+         64:37:88:bd:da:20:3a:cf:95:ca:15:43:7b:1b:2e:b9:be:80:
+         07:85:dd:96:e9:50:b4:3b:eb:32:c8:8b:62:7e:5a:68:0e:74:
+         2c:c9:93:1e:00:b3:14:7a:93:13:47:af:46:09:5a:a1:cc:c3:
+         25:e2:69:21:3e:cc:28:ea:cd:f2:e2:ac:9a:ff:40:58:d3:4e:
+         63:0b:61:b9:d1:f2:c9:cd:39:d5:14:1d:81:52:32:32:ca:f5:
+         08:bd:3d:40:54:72:64:47:8d:c1:80:b0:06:69:41:bb:9d:e4:
+         15:dd:cd:e5:e2:d0:b4:09:6b:06:7a:04:1e:c2:62:e1:c0:6f:
+         a2:5a:1c:1b:55:43:cb:a5:e8:93:cc:31:d2:cd:c4:3e:e5:6d:
+         40:b0:e8:5f:01:1e:e7:3c:29:bb:6b:2c:7f:71:70:7a:65:7c:
+         47:a1:19:c2:fb:c1:2d:f5:e9:29:13:17:b9:ef:82:b4:64:ec:
+         79:67:f4:87:1b:52:32:34:11:3a:d4:50:81:a6:d5:78:34:96:
+         82:91:73:fd:1a:6f:8d:90
 
 
-## Kafka with mTLS on
-1. Delete Kafka Container
-<pre>
-docker stop kafka
-docker container rm kafka -v
-</pre>
-
-2. Start new Container<p>
-The new Kafka container has two new settings:<p>
-- SSL: it enables the specific 9093 port and requests for SSL Client Authentication<p>
-- It sets all specific Kafka parameters related to the .jks file we crafted before.<p>
-
-<pre>
-docker run -d --name kafka -p 9092:9092 -p 9093:9093 --hostname kafka --network kong-net --link zookeeper:zookeeper \
--e KAFKA_LISTENERS=PLAINTEXT://:9092,SSL://:9093 \
--e KAFKA_SSL_TRUSTSTORE_LOCATION=/var/kafka.server.truststore.jks \
--e KAFKA_SSL_TRUSTSTORE_PASSWORD=kafkastore \
--e KAFKA_SSL_KEYSTORE_LOCATION=/var/kafka.server.keystore.jks \
--e KAFKA_SSL_KEYSTORE_PASSWORD=kafkastore \
--e KAFKA_KEY_PASSWORD=kafkastore \
--e KAFKA_SSL_CLIENT_AUTH=required \
--v /Users/claudio/kong/tech/Confluent/Plugin/CA/kafka.jks:/var/kafka.server.truststore.jks:ro \
--v /Users/claudio/kong/tech/Confluent/Plugin/CA/kafka.jks:/var/kafka.server.keystore.jks:ro \
-confluent/kafka
-</pre>
-
-Test the connection
-<pre>
-openssl s_client -debug -connect localhost:9092 -tls1
-openssl s_client -debug -connect localhost:9093 -tls1
-</pre>
 
 
-## Kafka Upstream plugin with mTLS on
-1. Delete the original Kafka Upstream plugin<p>
-We're going to recreate the Kafka mTLS Upstram plugin to turn mTLS on:
-
-<pre>
-$ http :8001/plugins
-HTTP/1.1 200 OK
-Access-Control-Allow-Origin: *
-Connection: keep-alive
-Content-Length: 879
-Content-Type: application/json; charset=utf-8
-Date: Wed, 30 Dec 2020 16:54:30 GMT
-Server: kong/2.2.0.0-enterprise-edition
-X-Kong-Admin-Latency: 3
-X-Kong-Admin-Request-ID: TgYSBt0MfGcLx4HT8DH5vOFVfxDIbBd8
-vary: Origin
-
-{
-    "data": [
-        {
-            "config": {
-                "bootstrap_servers": [
-                    {
-                        "certificate_id": null,
-                        "host": "kafka",
-                        "port": 9092,
-                        "tls_enable": false
-                    }
-                ],
-…….
-            "id": "468e6c2f-8c03-4a43-9b1d-dd69cc9ae0e8",
-…….
-}
-</pre>
-
-<pre>
-http delete :8001/plugins/468e6c2f-8c03-4a43-9b1d-dd69cc9ae0e8
-</pre>
 
 
-2. Inject the CA Digital Certificate in Kong Konnect Enterprise
-<pre>
-curl -sX POST http://localhost:8001/ca_certificates -F "cert=@./acquaCA.pem"
-</pre>
+Kafka Upstream plugin with mTLS on
+Delete the mTLS plugin
+We're going to recreate the Kafka mTLS Upstream plugin to turn mTLS on:
+
+$ http :8001/plugins | jq -r .data[0].id
+b66694e7-c734-4884-95e1-7b8b5471cd86
+
+http delete :8001/plugins/b66694e7-c734-4884-95e1-7b8b5471cd86
 
 
-3. Inject the Kong Digital Certificate in Kong Konnect Enterprise
-<pre>
+Inject the CA Digital Certificate in Kong Enterprise
+curl -sX POST http://localhost:8001/ca_certificates -F "cert=@./AcquaCA_cert.pem"
+
+Inject the Kong Digital Certificate in Kong Enterprise
 curl -sX POST http://localhost:8001/certificates \
     -F "cert=@./kong.crt" \
     -F "key=@./kong.key"
-</pre>
 
 
-4. Check both Digital Certificates
-<pre>
+
+Check both Digital Certificates
 $ http :8001/ca_certificates
 HTTP/1.1 200 OK
 Access-Control-Allow-Origin: *
 Connection: keep-alive
-Content-Length: 1273
+Content-Length: 2401
 Content-Type: application/json; charset=utf-8
-Date: Wed, 30 Dec 2020 16:58:42 GMT
-Server: kong/2.2.0.0-enterprise-edition
+Date: Fri, 17 Dec 2021 13:37:13 GMT
+Server: kong/2.7.0.0-enterprise-edition
 X-Kong-Admin-Latency: 2
-X-Kong-Admin-Request-ID: VUGhZM2xeOZDQsQ8dYaZFCi5nZaWb6Es
+X-Kong-Admin-Request-ID: 9yR3LvHiRMr6DYbTUkTFfAx0u9enEwTE
 vary: Origin
 
 {
     "data": [
         {
-            "cert": "-----BEGIN CERTIFICATE-----\nMIIC1zCCAb+gAwIBAgIJALVbmGbas7WsMA0GCSqGSIb3DQEBBQUAMCIxCzAJBgNV\nBAYTAkJSMRMwEQYDVQQKDApBY3F1YSBDb3JwMB4XDTIwMTIzMDE1MjgzMloXDTMw\nMTIyODE1MjgzMlowIjELMAkGA1UEBhMCQlIxEzARBgNVBAoMCkFjcXVhIENvcnAw\nggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDX7wHj990GOchFFz9bQdJw\nwSkzDM2Mp8TQEZuQ6z5WzXrHOVZGRNlov8MYVs80lXxXQNP//lJmvCMYdd9OihLR\n2qlSL9zQjZ+TsgVPdGbkyFwQYeH8/PqjH3O46SzQumn0Mtlgrk2PFhwAyVXtKZGg\nMwKuHmRXGl9GP6yCeEwc+5IuT/FjcFi6/3tvn5ralLjNLJGiczL6HKcRcsHKf7eI\n3PMofBYCclHRtsly4UoYNlgm7nL7qvlzLSaoRTdJhT7hI8X7H/nQ/20LKORFl/EN\nVgnJoZeAgMP48mLsw/gEfFHUoFXRFLJPMQIWHbTpAF67LKFpFkfDTVJgKg4uZefb\nAgMBAAGjEDAOMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEFBQADggEBAHdkTCmL\nboUFsTRfT6Pv0oRJ9ZVqojB7Hi2tNY88Ftvu7tvy49wmMTmDNJwYjDF4jvp0jDh7\ndZMfirjcGq64dakRnMRbt96V+19UiKCQHfnJFe505viOmAiMR4pCk/G8ZV0XFRia\nrqTb5QKQmPSo/6b2iaoRiaXPQL16ZuyxMlt+b5/0YSBrw4I3ZpsohMHWwQGYgdRd\nTP8zL+i2uvaON65zzsbCaN2T2ikWmFdRcgeitYPyRNMdINYFvlYOj8aRBuky/p01\nkvvxzreCmrDeAeO6i/eZN+LmVAJ7jSbmOH5rWnsxYOAZDeZQ1sK52DDWfjQ8Zxhh\nRwcpgQqlZhAXunI=\n-----END CERTIFICATE-----\n",
-            "cert_digest": "52d752773c4321d21292a3392b987ba859bffe5f32604373da7255de52df358c",
-            "created_at": 1609347472,
-            "id": "c8b462f2-3ecd-4737-bec6-fc6bc3274fed",
+            "cert": "-----BEGIN CERTIFICATE-----\nMIIGFTCCA/2gAwIBAgIJAIAk1Jij0hwiMA0GCSqGSIb3DQEBCwUAMIGYMQswCQYD\nVQQGEwJCUjESMBAGA1UECAwJU2FvIFBhdWxvMRIwEAYDVQQHDAlTYW8gUGF1bG8x\nEzARBgNVBAoMCkFjcXVhIENvcnAxEzARBgNVBAsMClRlY2hub2xvZ3kxEjAQBgNV\nBAMMCUFjcXVhQ29ycDEjMCEGCSqGSIb3DQEJARYUYWNxdWF2aXZhQHVvbC5jb20u\nYnIwHhcNMjExMjE3MTMwMDIzWhcNMjIwMTE2MTMwMDIzWjCBmDELMAkGA1UEBhMC\nQlIxEjAQBgNVBAgMCVNhbyBQYXVsbzESMBAGA1UEBwwJU2FvIFBhdWxvMRMwEQYD\nVQQKDApBY3F1YSBDb3JwMRMwEQYDVQQLDApUZWNobm9sb2d5MRIwEAYDVQQDDAlB\nY3F1YUNvcnAxIzAhBgkqhkiG9w0BCQEWFGFjcXVhdml2YUB1b2wuY29tLmJyMIIC\nIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAyjuwN24Qy84dxZjPVjht5c/l\ndVwfxUvyJ2vDk5Og0wPcqC5MDAlD1+mfBzd9fvUqCKJ/pbI8pN1GUcFJWMdqVV+E\ng0kyDHmi16NnBUqaCxwKoV1Hu6WW8fUGKz13z0n7VeOQ4OhE5/Ixve1abUtBey76\n9y1U+rHnIXhQ10joEWmoH4UGGPC1guRpIsSz5oTr8d2VKjMeVKqvRi3h+CiG8WfN\nowPzMVKAt74Og/fYQBmW2FU6RY2LyoFzuTvrm22X3vr0AGZ7pY79FWRsqy04VJ9H\nzvxlBruG9TbRv6AXXP13ROM/VtkE4hQFmpueh0MH5buhCCUd+mputrIVHkgqlUSU\nnzybCm2GpdmklZ/auPMt7zGRP1vMh2zrUwguQTexKeMgzwDjtRC/bslfJ4CzcVb7\njlW8b3qEnxhsa7lgA6Pkvat2juyUM7SZ4aX1NqVa3eU1qhVQXwKqhO4zT0GmzXbP\ngb8/c/g6szaZ90JLqzf9htRt73ibldRxBVIYCesCid2rsJ7urYBEbNSfBJJzzg40\n7bo0m4AGoWZV3SmmUj1QJ0Z9RxLkKiRs0yhjxnAejWnEqsqvSLO+A/WnMLsrHAD8\nPqrYa0hgTb7x5Y02IVAGQmmG2aTujgRf0I2a8I7W3RmYXOkFVJX/iqq2Zd+3/JNB\nPGm6bm8Ri62spUaOlpcCAwEAAaNgMF4wHQYDVR0OBBYEFJ6ydrNYhFe9RPLFRr2r\nLEozjM+aMB8GA1UdIwQYMBaAFJ6ydrNYhFe9RPLFRr2rLEozjM+aMA8GA1UdEwEB\n/wQFMAMBAf8wCwYDVR0PBAQDAgEGMA0GCSqGSIb3DQEBCwUAA4ICAQC3rNotrZeA\n/ElvBdzg7e+5SE0YC4FIZVweAjNoClm+u3/uqEnn7+p1K8woTPWZl//kWU06dk4A\nFBSjXG3vL/pHzufc9atD71YQwZ5uT0VzpIkxVLYIp8nfVAXt8deM+JTs61q1MbSY\nMj+37+BHae6ho9KMGArU4VfOpnE6LqmX5o2mn2Rtt2x1Amf/tBYKpqC5avyoKoE4\nEYf5u1KnNaaAN0wao2TBhyCozMTmdRaLdFCO0LbBj+U7oWmyC8qXEY4+QLhS1Xgo\nSNYXdedbIdERNFLiilA/WXviMHq3qR4F4PnERfWf80pXTXov6Z0xAriuxYDTBDjA\n1RQJhijwBHCSuPW1oNruDX4AQQbt9UyY+JbJT0nUZ3hUn/s6gFwADTW9ThrDGwmg\nSVTqBjsMdH2NXOXhXPA3jOwfyJzV5o5gPTPTphlVqi2sg9mqMfCZEJgXfoyc0rYu\nJ4R/7Toie/d97UNH7AiqVjDk81spUYHbS0xJsVVA+xT6tODaGN8SWhi/22B33ICV\nBuMCvapZVUuSMM+V2UpWRSq/gYXwhWShvZIZl6NqW2vvzfkb9LfkoRW3OSr8I2S7\nWUZrem60Vp/1XeMV6q8l6A1f+TrpGd/LXrihBoyN0HwrbHsYnzh6em/bIy0fo31m\nkzdXPtso/fx/AuQFi4P+rQTrbBUhzPpWMg==\n-----END CERTIFICATE-----\n",
+            "cert_digest": "20e9d94a0ddca1a69df0003b3436e90e1b069c9179175066b14773ba611a1dbf",
+            "created_at": 1639748220,
+            "id": "b8d16238-015c-4c35-9d25-5b1bb0991986",
             "tags": null
         }
     ],
     "next": null
 }
-</pre>
 
-<pre>
+
+
 $ http :8001/certificates
 HTTP/1.1 200 OK
 Access-Control-Allow-Origin: *
 Connection: keep-alive
-Content-Length: 3216
+Content-Length: 3392
 Content-Type: application/json; charset=utf-8
-Date: Wed, 30 Dec 2020 16:59:08 GMT
-Server: kong/2.2.0.0-enterprise-edition
+Date: Fri, 17 Dec 2021 13:37:37 GMT
+Server: kong/2.7.0.0-enterprise-edition
 X-Kong-Admin-Latency: 3
-X-Kong-Admin-Request-ID: mXPvqolim0x5FCDbsk3RaNjXK93w9BBj
+X-Kong-Admin-Request-ID: ofxbx8x936E9jIQhQvz9vCwwK4hFRqen
 vary: Origin
 
 {
     "data": [
         {
-            "cert": "-----BEGIN CERTIFICATE-----\nMIIDrDCCApQCCQDtV14roT1ZyDANBgkqhkiG9w0BAQUFADCBmDELMAkGA1UEBhMC\nQlIxEjAQBgNVBAgMCVNhbyBQYXVsbzESMBAGA1UEBwwJU2FvIFBhdWxvMRMwEQYD\nVQQKDApBY3F1YSBDb3JwMRMwEQYDVQQLDApUZWNobm9sb2d5MRIwEAYDVQQDDAlh\nY3F1YS5jb20xIzAhBgkqhkiG9w0BCQEWFGFjcXVhdml2YUB1b2wuY29tLmJyMB4X\nDTIwMTIzMDE1NDEzMVoXDTMwMTIyODE1NDEzMVowgZYxCzAJBgNVBAYTAkJSMRIw\nEAYDVQQIDAlTYW8gUGF1bG8xEjAQBgNVBAcMCVNhbyBQYXVsbzESMBAGA1UECgwJ\nS29uZyBDb3JwMRMwEQYDVQQLDApUZWNobm9sb2d5MREwDwYDVQQDDAhrb25nLmNv\nbTEjMCEGCSqGSIb3DQEJARYUYWNxdWF2aXZhQHVvbC5jb20uYnIwggEiMA0GCSqG\nSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCpK3vqwzLm/vV2mbtd+3IdZKZvXwTG+yM0\nZWbM2wYkx7gULpRDrF4vtvg35ZzHqHn4YzhsGg4OO7SH7S02G2TqSM+qiPm+eE34\nh2gv13smxM7gut+fBsgTEVcYHMDv4q2Q3eOE9GlKwUdsHwnyAzRwVpSmMhp4ifn3\nZK8dCMG3CtKj6CqQpZFxKbfAAQfnkWQYzLIWRY707YRS0VFpTR0ryIqQtbyfYnGf\negKosepcsjBdKzKWWVoaWtUTnhDXCSk2vagx7OmkKooAMGJ6pr4OB2WU/n5ADBIC\n5cgjZz/+TsxyIYwceaew7OLA3REJ4vZrXDjbWHBUN9T3w79JI7e1AgMBAAEwDQYJ\nKoZIhvcNAQEFBQADggEBABS+5y180syWRFIO+jV+YZVBVzqzwW8VVIajTOe62PVw\nhEDT+1x6PobSpt53ewsZ9LbRpAA2oxr20Kl0r6KdOc20HFTN4+dO0sg0zCfmbNk+\nqs/QGsvbJHD9LUnKhWuiRpiCKSKHolBgYFBAK32tEdva2sAtcaVbx/Y4rWjQSQJJ\nkVhiS+/uZm0DG7pMXwzCks0smUwMj2BUGBrGG3I27KFh71ZJdawomqlp1zueXrSd\nW0Ea55pbvck8J3ZCAof5mmIr4yileBMmVymmIeWFhKr4M7HdeqewNzbW1gtQlmws\n/vebLyrw/pCUY2rZ5qb7SeGNIdn48Oty0yMIp0J31/g=\n-----END CERTIFICATE-----\n",
-            "created_at": 1609347481,
-            "id": "fa277570-141f-4a64-ba55-daff0823eadb",
-            "key": "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEAqSt76sMy5v71dpm7XftyHWSmb18ExvsjNGVmzNsGJMe4FC6U\nQ6xeL7b4N+Wcx6h5+GM4bBoODju0h+0tNhtk6kjPqoj5vnhN+IdoL9d7JsTO4Lrf\nnwbIExFXGBzA7+KtkN3jhPRpSsFHbB8J8gM0cFaUpjIaeIn592SvHQjBtwrSo+gq\nkKWRcSm3wAEH55FkGMyyFkWO9O2EUtFRaU0dK8iKkLW8n2Jxn3oCqLHqXLIwXSsy\nlllaGlrVE54Q1wkpNr2oMezppCqKADBieqa+DgdllP5+QAwSAuXII2c//k7MciGM\nHHmnsOziwN0RCeL2a1w421hwVDfU98O/SSO3tQIDAQABAoIBAQCkWxLxauQxeNOS\nfpmDHaAo3ni1C2Pgzm3NohbWQJUfdsppETgK55Q6V1GhPPutHwohQIS4wjeVrHwg\n81VRlBvfYw4faST64HcgVq3qjTeg2uUDgYtxPW102Qv86TKp3VkzveAmdC836cAy\nU5WeA28XFYcmUNdW9PZeXPulAbTy14OUU7XzqsypZhctKP76RlRmMubAYTjrQgYo\nFKLRid4oGzlZj5eJDO46kFgATpMJdAR3Hd38So1iRkVvi3Mid8g8FnmH48+kHn1O\ncUuKZhBNTopFSWjiBqFEX3a8btMmBga3kUbBozFRZxyTd1LIWvnv933e32o4cKso\nt9a3EsGhAoGBAN+btRrVf/PMBQR6xt5SJB+idpMOvYWa/iSlJsLfpGfsj70LIz0h\ndywAa2pBM7bDc8ndFW1Aiy/0hsGRBtpXJfrpPePAzg35k/sCJgqOPn8Mc3M8oYeU\nrw7XQRpbSyOFPIRLRrYm3KoRDtUCydjJtJXK6lyOIEW+7w01sKSgsSQfAoGBAMGs\n+5mfzcW0osCCXzMfninPwer5N9gnOz6zcdaonWtbO17CS7LjgoOSpanNho0Mhr9b\n9Fz71o2Mxf06ibFgrQEgstrNkq+BGl1HH+LL4dGA5BpoPN7SSOVn6tFfW9TawFbD\nqJGhLDV58X1HoOF4o7ShJYrFNIb+Snh3V/iqBImrAoGANI3ZC9x//SHHUB03Hkt5\n+AFsEvYU7xDViHFUYdrEPjSoN8slVhnGc44JsOhwKhVX4mrWvV29GOFExru6O5jd\n8VHeXOgUxc4RzJ3dqP9zitK3U689W6tDVZ6by4EHcOrApWs3zFnn5QSrUr8cB5qo\nmcgeOvCgfyP39UfYI2ktGQsCgYBwf76V+dFZKhfvossRsyf4OYn2p1Tc5czwGuPh\nQIhQN+pAnLPD8Yt6SdCY1Z12iPQsa4mCCXcTOdY3xaz9r55OrWO23Pp7n45k6E+J\nOcyuGSRmgm35METPnJE1lSKOfZKD05szHF/FoFO55cV5ss3EumZIOUzNrSAs4YXk\nFz4TiQKBgQDLW/15YTwuTzpLyknZtwysbvnPpDiKHCF5SjzKW3k7hM7kr05YmdCm\naYfH3FMXoZ5kc+SqVUynm9PQkjgDZCU4mxAsSsOlthRYtQuNh8ElmFW84AQ1UmqK\nF66zokOl5Wcr5hzmtuAniy1iR1kDZjgOLIMYirQitsrUe4sWuf5vBw==\n-----END RSA PRIVATE KEY-----\n",
+            "cert": "-----BEGIN CERTIFICATE-----\nMIIEJDCCAgwCCQDpPOCPyakCAjANBgkqhkiG9w0BAQUFADCBmDELMAkGA1UEBhMC\nQlIxEjAQBgNVBAgMCVNhbyBQYXVsbzESMBAGA1UEBwwJU2FvIFBhdWxvMRMwEQYD\nVQQKDApBY3F1YSBDb3JwMRMwEQYDVQQLDApUZWNobm9sb2d5MRIwEAYDVQQDDAlB\nY3F1YUNvcnAxIzAhBgkqhkiG9w0BCQEWFGFjcXVhdml2YUB1b2wuY29tLmJyMB4X\nDTIxMTIxNzEzMzYxOFoXDTIyMTIxNzEzMzYxOFowDzENMAsGA1UEAwwEa29uZzCC\nASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBANqLbnca3+v7Irw5RC1dW2BK\nopwBSKPN7sINbcLn+W6LRqZr8mroH9RLl9oN5osxu0B+WZdVQKeVsOUyfewEftmD\nm+BiL7P8DrZmO9pbaCYCo2N9KPIKzhljhnvja1gSvVrl+dGEcHnUBPqN8zXbMVwx\ng6EiYirrv46F+KQwKWCjFt8CdV/qlWsG+Id10jt0zgkuGE6YEGO6JK2ZwGW+AbRB\naw7oU+RurMU9W0yIjCEYnJ66L+aLBdTAmRD68g8pwmmKN52GUkEqruYWtwLp60Qk\nDNtYpKJNs5FBntdXoF/sD2DFP5PZjDIVEOH4EAQEuWL+M1kS+2CGWOQH4no+xlUC\nAwEAATANBgkqhkiG9w0BAQUFAAOCAgEAbVep7wH1Rmi93hBsOl5rSrK3gxLtMdxI\nGQXx+7L/V+1xv9L6dqLjhkEoIcF5me/wH4WIRR8U8Dp8J3yl21mix5z/tHfi83RM\nEazIT56MLlw4cvGzVTP+umBuUhyimwv8KXplRMWFPXfDzkSZJp5+l4oolhHP9WpO\n5U+F28Sj6TPNM/BIMlAnjgXGVvz97p3nb+EoaTyLI+VFeqqPPNpzhhQURXzCT9Mb\nbq2NosBd6+UlWFf0iO9d8pfe9yPTFhkGWdF5+rvM4xFC4uKvW6LEirmIDpkJs4XP\nSpU1xVdS8+nHfWU/mpXTmISgsrMw/zgTggY4p/8Ybb0gk/ANNT02zrOeRVcYCOJf\n4UO6Tt07n9cTp21zM9fI9oq3NDnrsX5PewqvFg3leTNLCZt26rM6Vsx5GS4ek73l\nKcnlHAO1rA9Y2ZagFyvE6I8SAb1lj1fZVh8XMA5HqwjIG/9+kPkHDsBtcUjPBFXU\ntQzhyrSRXYKkqnLhNqJ+Q0RdMPM4217RXn9NgVhMQwDV6y2uh7PPjd4/oHZCKInw\n9Rg9R3zBceShgJemgzNl7gBaGIzGw4/EN91hQSBlvPHytvNfD5HhSmFRYYwBhwKl\ntdo7fvDsrvRf5gAEgM6Vk55VAWhIAEisvvABZFNQR4QksptHW8ojD+tEisNiWaUi\nOF9oraAptiI=\n-----END CERTIFICATE-----\n",
+            "cert_alt": null,
+            "created_at": 1639748225,
+            "id": "e707d119-2b1c-4ee0-8073-f5cbd3958660",
+            "key": "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA2otudxrf6/sivDlELV1bYEqinAFIo83uwg1twuf5botGpmvy\naugf1EuX2g3mizG7QH5Zl1VAp5Ww5TJ97AR+2YOb4GIvs/wOtmY72ltoJgKjY30o\n8grOGWOGe+NrWBK9WuX50YRwedQE+o3zNdsxXDGDoSJiKuu/joX4pDApYKMW3wJ1\nX+qVawb4h3XSO3TOCS4YTpgQY7okrZnAZb4BtEFrDuhT5G6sxT1bTIiMIRicnrov\n5osF1MCZEPryDynCaYo3nYZSQSqu5ha3AunrRCQM21ikok2zkUGe11egX+wPYMU/\nk9mMMhUQ4fgQBAS5Yv4zWRL7YIZY5Afiej7GVQIDAQABAoIBAQCYqjAniaGEwnFY\nVRS4L/AGCv0ex5LLwq6X5jOXpN7MhwR6ewvj/HVHourYCz/SWpI5EkpZeddpehsR\ncL0gI1/NaK96BnzWWSyZ5D7JYXMWol8qv6LbugqRF8I5RvuUkbqvBdoGr2K26BH2\nSTTtmUoY4gnWhSNYYkj1MccoQvCUrO4ijVfBGvNHCIBQ40478yDZ9LBqDjn2yNSu\n6tSBfzjYXyqxe1Tr5zOUf4xNjitXneAY2S5c1wCMuaFrnAk5D4eJVA86DtAtCewS\niWr2zOmGztQ/qegcM5zUSJ8jMMxvk0w6COGpYfntiuCJj0Bqt8qeD7U3pIhf8dPV\n9FbLoK39AoGBAPc3bMf4cV9DYN0FwxdtFvipkiDWK6BwDmMF3o3G/YioFedicXK3\nPbHtPjyeUJ+3dQeCD99ZCHrMzfCT+uTwiB3Cy82/UwDbx0OxH+ZURtsbrKKFqj0o\nrapF6/qpGxO7y6whAgSVU4J0bCa8GdAscTp4fr/gF/hHM9a+9JBXuwVnAoGBAOJP\nOEIlBY8ZSN9s/PSBwwwBWaU4sgWlM6htHV2emjYpBKlxZFzd4EDcX884TPoynqKi\ndD74z0iHYRoNNhBSv63fgkJPhkKpkbDM5EOkwcKvSKI7yklP5n+4BUXnO1DP2y8n\nVM3zrttTYHdg6d/8qPpM/wy4d1AhIgofcBuNlaTjAoGAXcia7emkKL2I25A6CIML\n+d1qYCafekfITWyGl0ZsHBGX7aV84EX/k6YqvBhbAZw5O1Xt6479Fojnf2LEBWHy\nYUfqxOzV8jduCpIBRgGmt6xx+121zWnHKBdKhFbuvLe7dls3RsHXYmAEP1WQfVa+\nxa28d9HthfSNB+R9Jt0BR/UCgYEA3y5PBfQqukeuNSDviVXa+6DtPmJeNfEIs8X/\n2s7JuDXVciDwYCEzweNS3THhwDBhf3QEfgGzsgxId3+l3I0umRM+C5UPi/hcRGab\nihYWO5/PWqbqREh2wWfCU4DJX1XNC4CXQpBZ1dQw4yoBGzK5ljaOpIXarHwwbJk6\nXwHPHQ8CgYBg4TJTE2x5OtfkLblHehipFUcQTh5bioz4NqiphE7kulpanWWGe7PN\n/GjobPU8xqi1+2a1jM932hTdEPOK8+tmshQ/obbQVxfJbHLbH5BWzHSPY6DAERac\nH46zQdXMh8YMXd3O+6ji+c2UEq5NAS5M51KfIPBlfOb9N/CYFs6iRA==\n-----END RSA PRIVATE KEY-----\n",
+            "key_alt": null,
             "snis": [],
             "tags": null
         }
     ],
     "next": null
 }
-</pre>
 
 
 
-5. Enable the Kafka Upstream plugin to the Route with mTLS on<p>
-The new Kafka plugin settings include:<p>
-- The 9093 port defined by the Kafka Cluster for SSL connections<p>
-- Uses the Kong Konnect Enterprise Digital Certificate id previously injected.<p>
-- All other settings remain the same
+Save the Certificate Id to configure the Kafka plugin
 
-<pre>
-curl -X POST http://localhost:8001/routes/httpbinroute/plugins \
+$ http :8001/certificates | jq -r .data[0].id
+e707d119-2b1c-4ee0-8073-f5cbd3958660
+
+
+
+Enable the Kafka mTLS Upstream plugin to the Route with mTLS on
+The new Kafka plugin settings include:
+The 9093 port defined by the Kafka Cluster for SSL connections
+SSL config set to true
+Uses the Kong Enterprise Digital Certificate id injected previously.
+All other settings remain the same
+
+Asynchronous configuration
+curl -X POST http://localhost:8001/routes/kafkaupstreamroute/plugins \
     --data "name=kafka-upstream" \
     --data "config.bootstrap_servers[1].host=kafka" \
     --data "config.bootstrap_servers[1].port=9093" \
-    --data "config.bootstrap_servers[1].tls_enable=true" \
-    --data "config.bootstrap_servers[1].certificate_id=fa277570-141f-4a64-ba55-daff0823eadb" \
+    --data "config.security.ssl=true" \
+    --data "config.security.certificate_id=e707d119-2b1c-4ee0-8073-f5cbd3958660" \
     --data "config.topic=test" \
     --data "config.timeout=10000" \
     --data "config.keepalive=60000" \
@@ -967,32 +823,59 @@ curl -X POST http://localhost:8001/routes/httpbinroute/plugins \
     --data "config.producer_async=true" \
     --data "config.producer_async_flush_timeout=1000" \
     --data "config.producer_async_buffering_limits_messages_in_memory=50000"
-</pre>
 
-6. Check the plugin
-<pre>
+Synchronous configuration
+curl -X POST http://localhost:8001/routes/kafkaupstreamroute/plugins \
+    --data "name=kafka-upstream" \
+    --data "config.bootstrap_servers[1].host=kafka" \
+    --data "config.bootstrap_servers[1].port=9093" \
+    --data "config.security.ssl=true" \
+    --data "config.security.certificate_id=e707d119-2b1c-4ee0-8073-f5cbd3958660" \
+    --data "config.topic=test" \
+    --data "config.timeout=10000" \
+    --data "config.keepalive=60000" \
+    --data "config.forward_method=false" \
+    --data "config.forward_uri=false" \
+    --data "config.forward_headers=true" \
+    --data "config.forward_body=false" \
+    --data "config.producer_request_acks=1" \
+    --data "config.producer_request_timeout=2000" \
+    --data "config.producer_request_limits_messages_per_request=200" \
+    --data "config.producer_request_limits_bytes_per_request=1048576" \
+    --data "config.producer_request_retries_max_attempts=10" \
+    --data "config.producer_request_retries_backoff_timeout=100" \
+    --data "config.producer_async=false" \
+    --data "config.producer_async_flush_timeout=1000" \
+    --data "config.producer_async_buffering_limits_messages_in_memory=50000"
+
+Check the plugin
 $ http :8001/plugins
 HTTP/1.1 200 OK
 Access-Control-Allow-Origin: *
 Connection: keep-alive
-Content-Length: 912
+Content-Length: 1041
 Content-Type: application/json; charset=utf-8
-Date: Thu, 31 Dec 2020 14:23:03 GMT
-Server: kong/2.2.0.0-enterprise-edition
-X-Kong-Admin-Latency: 5
-X-Kong-Admin-Request-ID: iRU7dbbEbjWhiQQiCBI5wjYg8Was5qJZ
+Date: Fri, 17 Dec 2021 13:39:22 GMT
+Server: kong/2.7.0.0-enterprise-edition
+X-Kong-Admin-Latency: 3
+X-Kong-Admin-Request-ID: KnC0HJ1wtxTr0eajVYye2h3GN5HVZrEq
 vary: Origin
 
 {
     "data": [
         {
             "config": {
+                "authentication": {
+                    "mechanism": null,
+                    "password": null,
+                    "strategy": null,
+                    "tokenauth": null,
+                    "user": null
+                },
                 "bootstrap_servers": [
                     {
-                        "certificate_id": "fa277570-141f-4a64-ba55-daff0823eadb",
                         "host": "kafka",
-                        "port": 9093,
-                        "tls_enable": true
+                        "port": 9093
                     }
                 ],
                 "forward_body": false,
@@ -1000,6 +883,7 @@ vary: Origin
                 "forward_method": false,
                 "forward_uri": false,
                 "keepalive": 60000,
+                "keepalive_enabled": false,
                 "producer_async": true,
                 "producer_async_buffering_limits_messages_in_memory": 50000,
                 "producer_async_flush_timeout": 1000,
@@ -1009,13 +893,17 @@ vary: Origin
                 "producer_request_retries_backoff_timeout": 100,
                 "producer_request_retries_max_attempts": 10,
                 "producer_request_timeout": 2000,
+                "security": {
+                    "certificate_id": "e707d119-2b1c-4ee0-8073-f5cbd3958660",
+                    "ssl": true
+                },
                 "timeout": 10000,
                 "topic": "test"
             },
             "consumer": null,
-            "created_at": 1609419198,
+            "created_at": 1639748302,
             "enabled": true,
-            "id": "9ccc36e0-661e-41f9-801f-fb96e2be03e3",
+            "id": "d0fead58-eb8a-48d4-8e66-ee77b2c49000",
             "name": "kafka-upstream",
             "protocols": [
                 "grpc",
@@ -1024,7 +912,7 @@ vary: Origin
                 "https"
             ],
             "route": {
-                "id": "9e784488-29e2-4dfb-9707-289db87536f3"
+                "id": "a33911db-1a4a-49bc-8ffd-f6f499b33b53"
             },
             "service": null,
             "tags": null
@@ -1032,34 +920,43 @@ vary: Origin
     ],
     "next": null
 }
-</pre>
 
 
-7. Consume the Route and check the Kafka Topic
-<pre>
-$ http :8000/httpbin/get bbb:555
+
+
+
+
+
+
+
+
+
+
+
+Consume the Route and check the Kafka Topic
+$ http :8000/kafkaupstream/get bbb:555
 HTTP/1.1 200 OK
 Connection: keep-alive
 Content-Length: 26
 Content-Type: application/json; charset=utf-8
-Date: Wed, 30 Dec 2020 14:59:20 GMT
-Server: kong/2.2.0.0-enterprise-edition
-X-Kong-Response-Latency: 30
+Date: Fri, 17 Dec 2021 13:39:58 GMT
+Server: kong/2.7.0.0-enterprise-edition
+X-Kong-Response-Latency: 60
 
 {
     "message": "message sent"
 }
-</pre>
+
+
 
 The consumer should show the new message
-<pre>
 $ kafka-console-consumer --bootstrap-server localhost:9092 --topic test --from-beginning
-{"headers":{"host":"localhost:8000","accept-encoding":"gzip, deflate","user-agent":"HTTPie\/2.3.0","accept":"*\/*","bbb":"555","connection":"keep-alive"}}
-</pre>
+{"headers":{"host":"localhost:8000","accept-encoding":"gzip, deflate","user-agent":"HTTPie/2.4.0","accept":"*/*","bbb":"555","connection":"keep-alive"}}
 
 
-## Conclusion
 
-Kong Konnect Enterprise makes it easy to integrate with Kafka Streaming Platform run services by providing consistent visibility and network traffic controls for existing Kafka topics
 
-Feel free to apply policies to the Route created in this post and experiment further implementing policies like caching, log processing, OIDC-based authentication, canary, and more with the extensive list of plugins provided by Kong.
+
+
+while [ 1 ]; do curl http://localhost:8000/kafkaupstream/get -H bbb:555; sleep 1; echo; done
+
