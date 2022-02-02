@@ -327,7 +327,7 @@ confluentinc/cp-kafka:7.0.1
 </pre>
 
 
-### Kong Enterprise Installation
+## Kong Enterprise Installation
 
 Set Environment Variable with license
 <pre>
