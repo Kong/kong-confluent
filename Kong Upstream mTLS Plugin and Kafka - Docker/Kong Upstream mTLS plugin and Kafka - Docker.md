@@ -241,20 +241,13 @@ Common Name (e.g. server FQDN or YOUR name) [AcquaCorp]:
 Email Address [acquaviva@uol.com.br]:
 </pre>
 
-### Insert CA Digital Certificate in both Trust Stores
-
-#### Kafka Server Trust Store
+### Insert CA Digital Certificate in Kafka Server Trust Store
 <pre>
 $ keytool -keystore server.truststore.jks -alias CARoot -import -file AcquaCA_cert.pem -storepass "serverpwd" --noprompt
 Certificate was added to keystore
 </pre>
 
 
-
-#### Kafka Tools Client Trust Store
-<pre>
-keytool -keystore client.truststore.jks -alias CARoot -import -file AcquaCA_cert.pem -storepass "clientpwd" --noprompt
-</pre>
 
 
 
