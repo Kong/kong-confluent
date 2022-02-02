@@ -1,11 +1,11 @@
-# Kong Konnect Enterprise and Kafka Upstream mTLS plugin - Docker
+# Kong Enterprise and Kafka Upstream mTLS plugin - Docker
 
 ## Overview
 Event streaming allows developers to build more scalable and loosely coupled real-time applications supporting massive concurrency demands and simplifying the construction of services.
 
 At the same time, API management provides capabilities to securely control the upstream services consumption, including the event processing infrastructure.
 
-This Tech Guide will walk you through the integration between Kong Konnect Enterprise and Kafka Event Streaming. We're going to expose Kafka to new and external consumers while applying specific and critical policies to control its consumption, including API key, OAuth/OIDC and others for authentication, rate limiting, caching, log processing, etc.
+This Tech Guide will walk you through the integration between Kong Enterprise and Kafka Event Streaming. We're going to expose Kafka to new and external consumers while applying specific and critical policies to control its consumption, including API key, OAuth/OIDC and others for authentication, rate limiting, caching, log processing, etc.
 
 
 ## System Requirements
@@ -67,20 +67,20 @@ brew install kafka
 
 Insert a "kafka" entry in the /etc/hosts file with 127.0.0.1
 <pre>
-$ kafka-topics --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic test
+$ kafka-topics --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --topic test
 Created topic test.
 </pre>
 
 Check the topic with:
 <pre>
-$ kafka-topics --zookeeper localhost:2181 --describe --topic test
-Topic: test	PartitionCount: 1	ReplicationFactor: 1	Configs: 
-	Topic: test	Partition: 0	Leader: 0	Replicas: 0	Isr: 0
+$ kafka-topics --bootstrap-server localhost:9092 --describe --topic test
+Topic: test	TopicId: RSzKeWoHTlS_rQXno9OBgA	PartitionCount: 1	ReplicationFactor: 1	Configs: 
+	Topic: test	Partition: 0	Leader: 1	Replicas: 1	Isr: 1
 </pre>
 
 If you want to delete the topic run:
 <pre>
-kafka-topics --delete --zookeeper localhost:2181 --topic test
+kafka-topics --delete --bootstrap-server localhost:9092 --topic test
 </pre>
 
 Test the Kafka topic
@@ -114,9 +114,391 @@ testing
 </pre>
 
 
-## Kong Konnect Enterprise Installation
 
-In this guide we'll be using the Kafka Upstream plugin, which is only available for Kong Konnect Enterprise. If you don't already have a Kong Konnect Enterprise account, you can get a 30-day trial here: https://konghq.com/get-started/#free-trial
+## Certificate Authority creation
+In order to implement a mTLS encrypted tunnel with Kafka and Kong, we're going to issue Digital Certificates for both products. A new CA (Certificate Authority) will be created to issue certificates and private keys.
+
+Create a local directory to store all artifacts we're going to produce.
+
+1. Issue the CA's Private Key and Digital Certificate<p>
+Create a local file named "AcquaCA.cnf" with the "CA:TRUE" constraint
+
+<pre>
+HOME            = .
+RANDFILE        = ./rnd
+
+####################################################################
+[ ca ]
+default_ca    = CA_default      # The default ca section
+
+[ CA_default ]
+
+base_dir      = .
+certificate   = ./cacert.pem   # The CA certifcate
+private_key   = ./cakey.pem    # The CA private key
+new_certs_dir = .              # Location for new certs after signing
+database      = ./index.txt    # Database index file
+serial        = ./serial.txt   # The current serial number
+
+default_days     = 1000         # How long to certify for
+default_crl_days = 30           # How long before next CRL
+default_md       = sha256       # Use public key default MD
+preserve         = no           # Keep passed DN ordering
+
+x509_extensions = ca_extensions # The extensions to add to the cert
+
+email_in_dn     = no            # Don't concat the email in the DN
+copy_extensions = copy          # Required to copy SANs from CSR to cert
+
+####################################################################
+[ req ]
+default_bits       = 4096
+default_keyfile    = cakey.pem
+distinguished_name = ca_distinguished_name
+x509_extensions    = ca_extensions
+string_mask        = utf8only
+
+####################################################################
+[ ca_distinguished_name ]
+countryName         = Country Name (2 letter code)
+countryName_default = BR
+
+stateOrProvinceName         = State or Province Name (full name)
+stateOrProvinceName_default = Sao Paulo
+
+localityName                = Locality Name (eg, city)
+localityName_default        = Sao Paulo
+
+organizationName            = Organization Name (eg, company)
+organizationName_default    = Acqua Corp
+
+organizationalUnitName         = Organizational Unit (eg, division)
+organizationalUnitName_default = Technology
+
+commonName         = Common Name (e.g. server FQDN or YOUR name)
+commonName_default = AcquaCorp
+
+emailAddress         = Email Address
+emailAddress_default = acquaviva@uol.com.br
+
+####################################################################
+[ ca_extensions ]
+
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid:always, issuer
+basicConstraints       = critical, CA:true
+keyUsage               = keyCertSign, cRLSign
+
+####################################################################
+[ signing_policy ]
+countryName            = optional
+stateOrProvinceName    = optional
+localityName           = optional
+organizationName       = optional
+organizationalUnitName = optional
+commonName             = supplied
+emailAddress           = optional
+
+####################################################################
+[ signing_req ]
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid,issuer
+basicConstraints       = CA:FALSE
+keyUsage               = digitalSignature, keyEncipherment
+
+</pre>
+
+
+Then create a database and serial number file, these will be used to keep track of which certificates were signed with this CA. Both of these are simply text files that reside in the same directory as your CA keys.
+
+<pre>
+echo 01 > serial.txt
+touch index.txt
+</pre>
+
+Submit the file to create the CA's PrivateKey and Digital Certificate, accepting the default values. The command will create the "AcquaCA.key" and "AcquaCA_cert.pem" files:
+
+<pre>
+$ openssl req -x509 -config acquaCA.cnf -newkey rsa:4096 -sha256 -nodes -out AcquaCA_cert.pem -keyout AcquaCA.key -outform PEM
+Generating a 4096 bit RSA private key
+............................................................................................++
+................................................++
+writing new private key to 'AcquaCA.key'
+-----
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [BR]:
+State or Province Name (full name) [Sao Paulo]:
+Locality Name (eg, city) [Sao Paulo]:
+Organization Name (eg, company) [Acqua Corp]:
+Organizational Unit (eg, division) [Technology]:
+Common Name (e.g. server FQDN or YOUR name) [AcquaCorp]:
+Email Address [acquaviva@uol.com.br]:
+</pre>
+
+### Insert CA Digital Certificate in both Trust Stores
+
+#### Kafka Server Trust Store
+<pre>
+$ keytool -keystore server.truststore.jks -alias CARoot -import -file AcquaCA_cert.pem -storepass "serverpwd" --noprompt
+Certificate was added to keystore
+</pre>
+
+
+
+#### Kafka Tools Client Trust Store
+<pre>
+keytool -keystore client.truststore.jks -alias CARoot -import -file AcquaCA_cert.pem -storepass "clientpwd" --noprompt
+</pre>
+
+
+2. Issue a Digital Certificate based on the private key<p>
+The command creates a "acquaCA.crt" file.
+
+<pre>
+$ openssl req -x509 -new -key acquaCA.key -out acquaCA.crt
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) []:BR
+State or Province Name (full name) []:Sao Paulo
+Locality Name (eg, city) []:Sao Paulo
+Organization Name (eg, company) []:Acqua Corp
+Organizational Unit Name (eg, section) []:Technology
+Common Name (eg, fully qualified host name) []:acqua.com
+Email Address []:acquaviva@uol.com.br
+</pre>
+
+3. Checking the new CA's private key and Digital Certificate
+<pre>
+$ openssl rsa -in acquaCA.key -check
+RSA key ok
+writing RSA key
+-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEA1+8B4/fdBjnIRRc/W0HScMEpMwzNjKfE0BGbkOs+Vs16xzlW
+RkTZaL/DGFbPNJV8V0DT//5SZrwjGHXfTooS0dqpUi/c0I2fk7IFT3Rm5MhcEGHh
+/Pz6ox9zuOks0Lpp9DLZYK5NjxYcAMlV7SmRoDMCrh5kVxpfRj+sgnhMHPuSLk/x
+Y3BYuv97b5+a2pS4zSyRonMy+hynEXLByn+3iNzzKHwWAnJR0bbJcuFKGDZYJu5y
++6r5cy0mqEU3SYU+4SPF+x/50P9tCyjkRZfxDVYJyaGXgIDD+PJi7MP4BHxR1KBV
+0RSyTzECFh206QBeuyyhaRZHw01SYCoOLmXn2wIDAQABAoIBAAZrGEdKastwlD9Z
+fYyc3EB1vV/DFakEo5j7rQAVvfieivO5BJN6IGw4pvfmPKp3dwaw6pxFVvWuyexE
+NKsE96I9OaMzwQCB9ShStk2yTAyo1/O0tR7r9hc7LBlm9OoPYG7dxBBXnf6Oza5I
+TcGK5sU4PvAl/x2HryVLZzlJkhmaYq3+KSXGqkC1Soi3zZ7hJOfPiIaQq5eOUFSi
+OSF6dMkU4IQpEgU236NJgpJdok1lMQTyiD6BvSjRdfyAaQ3wl63WdaiSdxxoJXmc
+t4QGKjG+qb3SHoL7x+Nq2HqoZBWOOYjEJ5ZocN5kQ/5LUspMeyc93uLlOcsIZCVp
+giNgsgECgYEA/S8ONtKaykuKeVqFQXEqZTFYWppKspOVJ/NDFEZURMI0wZaUwMRX
+h8lEDRx8DCBGB3B2LhxUcC3kgtoGP5q6CKWSPQjExzCDey30yGfHVdd9ZuAGP44h
+XziYo52QtElXUJUn6CLg5Z+uKapOdw+Y+ZN68Y2XLx6FYSoHmxJLOZsCgYEA2lXh
+pQWOlmcbN/ZOm9Go6MXTHpNNilvD9pUtV98qGXkqWWJilAW9olLxLV9OBmAWXyZ+
+8jTC3he7ZHe4t8Snx4XupO8vm+iZIoUhCV7oftYP5iJlrol2q9Jjv6MxU8VavhhZ
+XhlvS4ZcKIMHWHHxdG+TcbpdXPJK8Pl3JCSrDsECgYAc92c+6nV/M4lSPQMF67aY
+AT9EjmaBa9Uizvgbt7gobbevdlTqgQwqouJARcQDdyXL8Bf1SpR2iSmdtugEGuWx
+24+RoBEzYN+KFkXtL8JkldTpEjRkzRQQWt9LyNknZ0SwGYCJVIQ6gTxh0/RKNuSf
+mTn1rOdhIrLL3Q0ltsAYhQKBgQC8G+Ic23zN+Gdq/7saZLiyVD5gyWi1G/rqJ/y5
+CHytFcd2210zSv7nK66++K2wsHiV4gTdiLebwbaiCMQNEFG9hZbmY20RVoUZSLn9
+6NdG8Acir+ALUEP+JXXrVh7Znd9giHn2qNNKrqgX/0wE16bAOqE+CuMFgXsvwr7z
+VORMAQKBgQCJvDlVcYxrIOPIXGFdqoN7y3+HIHJW5T3jmd+MyM9rH06u7B3laMG4
+hm/EONjzPq1gVoQNVw4Xt4CFPG8gwb3UKE+Yo6+v7orpIanyIALQXtx/XJoIOGUU
+UEhaWlEr8WnSp/A7j8RrE195jiwnAH/OO8y5a9BJEtowZYT46ymyvQ==
+-----END RSA PRIVATE KEY-----
+</pre>
+
+<pre>
+$ openssl x509 -in acquaCA.crt -text -noout
+Certificate:
+    Data:
+        Version: 1 (0x0)
+        Serial Number: 9575856616369054695 (0x84e446db86c063e7)
+    Signature Algorithm: sha256WithRSAEncryption
+        Issuer: C=BR, ST=Sao Paulo, L=Sao Paulo, O=Acqua Corp, OU=Technology, CN=acqua.com/emailAddress=acquaviva@uol.com.br
+        Validity
+            Not Before: Dec 30 15:19:40 2020 GMT
+            Not After : Jan 29 15:19:40 2021 GMT
+        Subject: C=BR, ST=Sao Paulo, L=Sao Paulo, O=Acqua Corp, OU=Technology, CN=acqua.com/emailAddress=acquaviva@uol.com.br
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                Public-Key: (2048 bit)
+                Modulus:
+                    00:d7:ef:01:e3:f7:dd:06:39:c8:45:17:3f:5b:41:
+                    d2:70:c1:29:33:0c:cd:8c:a7:c4:d0:11:9b:90:eb:
+                    3e:56:cd:7a:c7:39:56:46:44:d9:68:bf:c3:18:56:
+                    cf:34:95:7c:57:40:d3:ff:fe:52:66:bc:23:18:75:
+                    df:4e:8a:12:d1:da:a9:52:2f:dc:d0:8d:9f:93:b2:
+                    05:4f:74:66:e4:c8:5c:10:61:e1:fc:fc:fa:a3:1f:
+                    73:b8:e9:2c:d0:ba:69:f4:32:d9:60:ae:4d:8f:16:
+                    1c:00:c9:55:ed:29:91:a0:33:02:ae:1e:64:57:1a:
+                    5f:46:3f:ac:82:78:4c:1c:fb:92:2e:4f:f1:63:70:
+                    58:ba:ff:7b:6f:9f:9a:da:94:b8:cd:2c:91:a2:73:
+                    32:fa:1c:a7:11:72:c1:ca:7f:b7:88:dc:f3:28:7c:
+                    16:02:72:51:d1:b6:c9:72:e1:4a:18:36:58:26:ee:
+                    72:fb:aa:f9:73:2d:26:a8:45:37:49:85:3e:e1:23:
+                    c5:fb:1f:f9:d0:ff:6d:0b:28:e4:45:97:f1:0d:56:
+                    09:c9:a1:97:80:80:c3:f8:f2:62:ec:c3:f8:04:7c:
+                    51:d4:a0:55:d1:14:b2:4f:31:02:16:1d:b4:e9:00:
+                    5e:bb:2c:a1:69:16:47:c3:4d:52:60:2a:0e:2e:65:
+                    e7:db
+                Exponent: 65537 (0x10001)
+    Signature Algorithm: sha256WithRSAEncryption
+         37:ba:37:94:02:40:4b:23:59:04:e5:4a:da:a4:f6:4e:57:ce:
+         68:04:e9:82:5a:fc:22:96:a0:e3:3b:c4:7a:94:34:ff:73:23:
+         0b:d5:59:0b:19:4c:12:f0:0b:59:7e:e1:5e:85:1a:26:6c:37:
+         ca:5b:87:cf:5f:ba:88:3e:9e:15:e4:76:0b:0d:f8:82:eb:33:
+         28:d1:f9:5a:c5:12:21:97:22:f0:58:3e:5f:68:ac:a4:af:a7:
+         2c:cb:ae:3a:4d:16:fb:1e:11:49:5a:45:80:58:7f:28:70:c5:
+         4d:b9:2d:eb:5a:7e:93:d5:b6:92:68:2c:55:1d:b0:60:42:24:
+         7f:57:b6:48:cc:92:ec:3b:ed:ee:e7:da:2c:cf:50:af:75:64:
+         30:fb:c9:03:83:59:61:39:37:e3:d3:e6:2d:95:b2:d4:7b:a9:
+         ac:4d:e0:e8:d1:2e:a6:25:71:9b:af:e8:bb:f6:f4:7a:0b:3a:
+         fc:15:ff:a6:b2:f0:80:32:76:c2:42:23:82:f3:b9:25:ce:0b:
+         b6:51:5b:b4:f6:30:fe:cf:0f:2c:05:69:44:f4:52:e3:a5:59:
+         4c:08:1c:06:72:92:52:bf:f4:78:5a:62:12:30:57:0b:33:cf:
+         3a:c8:57:2b:15:43:5d:b9:53:b9:2f:d9:94:6d:bf:71:d5:2f:
+         dc:a4:66:77
+</pre>
+
+
+4. Issue a self-signed certificate for the CA<p>
+Create a local file named "acquaCA_csr.conf" with the "CA:TRUE" constraint
+
+<pre>
+[ req ]
+distinguished_name       = req_distinguished_name
+extensions               = v3_ca
+req_extensions           = v3_ca
+
+[ v3_ca ]
+basicConstraints         = CA:TRUE
+
+[ req_distinguished_name ]
+countryName              = Country Name (2 letter code)
+countryName_default      = BR
+countryName_min          = 2
+countryName_max          = 2
+organizationName         = Organization Name (eg, company)
+organizationName_default = Acqua Corp
+</pre>
+
+<p>Submit the file to create a CSR ("Certificate signing request"), accepting the default values. The command will create a "acquaCA.csr" file:
+<pre>
+openssl req -new -sha256 -key acquaCA.key -nodes -out acquaCA.csr -config acquaCA_csr.conf
+</pre>
+
+Issue the self-signed certificate. The command creates the "acquaCA.pem" file.
+<pre>
+$ openssl x509 -req -days 3650 -extfile acquaCA_csr.conf -extensions v3_ca -in acquaCA.csr -signkey acquaCA.key -out acquaCA.pem
+Signature ok
+subject=/C=BR/O=Acqua Corp
+Getting Private key
+</pre>
+
+
+## Kong Enterprise Digital Certificate
+1. Issue a Private Key for Kong Konnect Enterprise<p>
+The command creates the "kong.key" file.
+<pre>
+openssl genrsa -out kong.key
+</pre>
+
+2. Issue a CSR (Certificate Signing Request) for the Kong Konnect Enterprise Digital Certificate<p>
+The command creates the "kong.csr" file.
+<pre>
+$ openssl req -new -key kong.key -out kong.csr
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) []:BR
+State or Province Name (full name) []:Sao Paulo
+Locality Name (eg, city) []:Sao Paulo
+Organization Name (eg, company) []:Kong Corp
+Organizational Unit Name (eg, section) []:Technology
+Common Name (eg, fully qualified host name) []:kong.com
+Email Address []:acquaviva@uol.com.br
+
+Please enter the following 'extra' attributes
+to be sent with your certificate request
+A challenge password []:kong
+</pre>
+
+3. Issue the Kong Konnect Enterprise Digital Certificate<p>
+The command creates the "kong.crt" file.
+<pre>
+$ openssl x509 -req -in kong.csr -days 3650 -sha1 -CAcreateserial -CA acquaCA.crt -CAkey acquaCA.key -out kong.crt
+Signature ok
+subject=/C=BR/ST=Sao Paulo/L=Sao Paulo/O=Kong Corp/OU=Technology/CN=kong.com/emailAddress=acquaviva@uol.com.br
+Getting CA Private Key
+</pre>
+
+4. Check the Kong Konnect Enterprise Certificate
+<pre>
+$ openssl x509 -in kong.crt -text -noout
+Certificate:
+    Data:
+        Version: 1 (0x0)
+        Serial Number: 17102241651444505032 (0xed575e2ba13d59c8)
+    Signature Algorithm: sha1WithRSAEncryption
+        Issuer: C=BR, ST=Sao Paulo, L=Sao Paulo, O=Acqua Corp, OU=Technology, CN=acqua.com/emailAddress=acquaviva@uol.com.br
+        Validity
+            Not Before: Dec 30 15:41:31 2020 GMT
+            Not After : Dec 28 15:41:31 2030 GMT
+        Subject: C=BR, ST=Sao Paulo, L=Sao Paulo, O=Kong Corp, OU=Technology, CN=kong.com/emailAddress=acquaviva@uol.com.br
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                Public-Key: (2048 bit)
+                Modulus:
+                    00:a9:2b:7b:ea:c3:32:e6:fe:f5:76:99:bb:5d:fb:
+                    72:1d:64:a6:6f:5f:04:c6:fb:23:34:65:66:cc:db:
+                    06:24:c7:b8:14:2e:94:43:ac:5e:2f:b6:f8:37:e5:
+                    9c:c7:a8:79:f8:63:38:6c:1a:0e:0e:3b:b4:87:ed:
+                    2d:36:1b:64:ea:48:cf:aa:88:f9:be:78:4d:f8:87:
+                    68:2f:d7:7b:26:c4:ce:e0:ba:df:9f:06:c8:13:11:
+                    57:18:1c:c0:ef:e2:ad:90:dd:e3:84:f4:69:4a:c1:
+                    47:6c:1f:09:f2:03:34:70:56:94:a6:32:1a:78:89:
+                    f9:f7:64:af:1d:08:c1:b7:0a:d2:a3:e8:2a:90:a5:
+                    91:71:29:b7:c0:01:07:e7:91:64:18:cc:b2:16:45:
+                    8e:f4:ed:84:52:d1:51:69:4d:1d:2b:c8:8a:90:b5:
+                    bc:9f:62:71:9f:7a:02:a8:b1:ea:5c:b2:30:5d:2b:
+                    32:96:59:5a:1a:5a:d5:13:9e:10:d7:09:29:36:bd:
+                    a8:31:ec:e9:a4:2a:8a:00:30:62:7a:a6:be:0e:07:
+                    65:94:fe:7e:40:0c:12:02:e5:c8:23:67:3f:fe:4e:
+                    cc:72:21:8c:1c:79:a7:b0:ec:e2:c0:dd:11:09:e2:
+                    f6:6b:5c:38:db:58:70:54:37:d4:f7:c3:bf:49:23:
+                    b7:b5
+                Exponent: 65537 (0x10001)
+    Signature Algorithm: sha1WithRSAEncryption
+         14:be:e7:2d:7c:d2:cc:96:44:52:0e:fa:35:7e:61:95:41:57:
+         3a:b3:c1:6f:15:54:86:a3:4c:e7:ba:d8:f5:70:84:40:d3:fb:
+         5c:7a:3e:86:d2:a6:de:77:7b:0b:19:f4:b6:d1:a4:00:36:a3:
+         1a:f6:d0:a9:74:af:a2:9d:39:cd:b4:1c:54:cd:e3:e7:4e:d2:
+         c8:34:cc:27:e6:6c:d9:3e:aa:cf:d0:1a:cb:db:24:70:fd:2d:
+         49:ca:85:6b:a2:46:98:82:29:22:87:a2:50:60:60:50:40:2b:
+         7d:ad:11:db:da:da:c0:2d:71:a5:5b:c7:f6:38:ad:68:d0:49:
+         02:49:91:58:62:4b:ef:ee:66:6d:03:1b:ba:4c:5f:0c:c2:92:
+         cd:2c:99:4c:0c:8f:60:54:18:1a:c6:1b:72:36:ec:a1:61:ef:
+         56:49:75:ac:28:9a:a9:69:d7:3b:9e:5e:b4:9d:5b:41:1a:e7:
+         9a:5b:bd:c9:3c:27:76:42:02:87:f9:9a:62:2b:e3:28:a5:78:
+         13:26:57:29:a6:21:e5:85:84:aa:f8:33:b1:dd:7a:a7:b0:37:
+         36:d6:d6:0b:50:96:6c:2c:fe:f7:9b:2f:2a:f0:fe:90:94:63:
+         6a:d9:e6:a6:fb:49:e1:8d:21:d9:f8:f0:eb:72:d3:23:08:a7:
+         42:77:d7:f8
+</pre>
+
+
+## Kong Enterprise Installation
+
+In this guide we'll be using the Kafka Upstream plugin, which is only available for Kong Enterprise. If you don't already have a Kong Enterprise account, you can get a 30-day trial here: https://konghq.com/get-started/#free-trial
 
 1. Login to Kong Bintray using your credentials
 <pre>
@@ -152,7 +534,7 @@ docker run --rm --link kong-ee-database:kong-ee-database \
    kong-ee kong migrations bootstrap
 </pre>
 
-5. Start Kong Konnect Enterprise container
+5. Start Kong Enterprise container
 <pre>
 docker run -d --name kong-ee --link kong-ee-database:kong-ee-database \
   -e "KONG_DATABASE=postgres" \
@@ -407,264 +789,6 @@ $ kafka-console-consumer --bootstrap-server localhost:9092 --topic test --from-b
 testing
 {"headers":{"host":"localhost:8000","accept-encoding":"gzip, deflate","user-agent":"HTTPie\/2.3.0","accept":"*\/*","aaa":"444","connection":"keep-alive"}}
 </pre>
-
-
-
-## Certificate Authority creation
-In order to implement a mTLS encrypted tunnel with Kafka and Kong, we're going to issue Digital Certificates for both products. A new CA (Certificate Authority) will be created to issue certificates and private keys.
-
-Create a local directory to store all artifacts we're going to produce.
-
-1. Create the new Certificate Authority (CA) private key<p>
-The command creates a "acquaCA.key" file.
-
-<pre>
-$ openssl genrsa -out acquaCA.key
-Generating RSA private key, 2048 bit long modulus
-..................................................+++
-.+++
-e is 65537 (0x10001)
-</pre>
-
-2. Issue a Digital Certificate based on the private key<p>
-The command creates a "acquaCA.crt" file.
-
-<pre>
-$ openssl req -x509 -new -key acquaCA.key -out acquaCA.crt
-You are about to be asked to enter information that will be incorporated
-into your certificate request.
-What you are about to enter is what is called a Distinguished Name or a DN.
-There are quite a few fields but you can leave some blank
-For some fields there will be a default value,
-If you enter '.', the field will be left blank.
------
-Country Name (2 letter code) []:BR
-State or Province Name (full name) []:Sao Paulo
-Locality Name (eg, city) []:Sao Paulo
-Organization Name (eg, company) []:Acqua Corp
-Organizational Unit Name (eg, section) []:Technology
-Common Name (eg, fully qualified host name) []:acqua.com
-Email Address []:acquaviva@uol.com.br
-</pre>
-
-3. Checking the new CA's private key and Digital Certificate
-<pre>
-$ openssl rsa -in acquaCA.key -check
-RSA key ok
-writing RSA key
------BEGIN RSA PRIVATE KEY-----
-MIIEpAIBAAKCAQEA1+8B4/fdBjnIRRc/W0HScMEpMwzNjKfE0BGbkOs+Vs16xzlW
-RkTZaL/DGFbPNJV8V0DT//5SZrwjGHXfTooS0dqpUi/c0I2fk7IFT3Rm5MhcEGHh
-/Pz6ox9zuOks0Lpp9DLZYK5NjxYcAMlV7SmRoDMCrh5kVxpfRj+sgnhMHPuSLk/x
-Y3BYuv97b5+a2pS4zSyRonMy+hynEXLByn+3iNzzKHwWAnJR0bbJcuFKGDZYJu5y
-+6r5cy0mqEU3SYU+4SPF+x/50P9tCyjkRZfxDVYJyaGXgIDD+PJi7MP4BHxR1KBV
-0RSyTzECFh206QBeuyyhaRZHw01SYCoOLmXn2wIDAQABAoIBAAZrGEdKastwlD9Z
-fYyc3EB1vV/DFakEo5j7rQAVvfieivO5BJN6IGw4pvfmPKp3dwaw6pxFVvWuyexE
-NKsE96I9OaMzwQCB9ShStk2yTAyo1/O0tR7r9hc7LBlm9OoPYG7dxBBXnf6Oza5I
-TcGK5sU4PvAl/x2HryVLZzlJkhmaYq3+KSXGqkC1Soi3zZ7hJOfPiIaQq5eOUFSi
-OSF6dMkU4IQpEgU236NJgpJdok1lMQTyiD6BvSjRdfyAaQ3wl63WdaiSdxxoJXmc
-t4QGKjG+qb3SHoL7x+Nq2HqoZBWOOYjEJ5ZocN5kQ/5LUspMeyc93uLlOcsIZCVp
-giNgsgECgYEA/S8ONtKaykuKeVqFQXEqZTFYWppKspOVJ/NDFEZURMI0wZaUwMRX
-h8lEDRx8DCBGB3B2LhxUcC3kgtoGP5q6CKWSPQjExzCDey30yGfHVdd9ZuAGP44h
-XziYo52QtElXUJUn6CLg5Z+uKapOdw+Y+ZN68Y2XLx6FYSoHmxJLOZsCgYEA2lXh
-pQWOlmcbN/ZOm9Go6MXTHpNNilvD9pUtV98qGXkqWWJilAW9olLxLV9OBmAWXyZ+
-8jTC3he7ZHe4t8Snx4XupO8vm+iZIoUhCV7oftYP5iJlrol2q9Jjv6MxU8VavhhZ
-XhlvS4ZcKIMHWHHxdG+TcbpdXPJK8Pl3JCSrDsECgYAc92c+6nV/M4lSPQMF67aY
-AT9EjmaBa9Uizvgbt7gobbevdlTqgQwqouJARcQDdyXL8Bf1SpR2iSmdtugEGuWx
-24+RoBEzYN+KFkXtL8JkldTpEjRkzRQQWt9LyNknZ0SwGYCJVIQ6gTxh0/RKNuSf
-mTn1rOdhIrLL3Q0ltsAYhQKBgQC8G+Ic23zN+Gdq/7saZLiyVD5gyWi1G/rqJ/y5
-CHytFcd2210zSv7nK66++K2wsHiV4gTdiLebwbaiCMQNEFG9hZbmY20RVoUZSLn9
-6NdG8Acir+ALUEP+JXXrVh7Znd9giHn2qNNKrqgX/0wE16bAOqE+CuMFgXsvwr7z
-VORMAQKBgQCJvDlVcYxrIOPIXGFdqoN7y3+HIHJW5T3jmd+MyM9rH06u7B3laMG4
-hm/EONjzPq1gVoQNVw4Xt4CFPG8gwb3UKE+Yo6+v7orpIanyIALQXtx/XJoIOGUU
-UEhaWlEr8WnSp/A7j8RrE195jiwnAH/OO8y5a9BJEtowZYT46ymyvQ==
------END RSA PRIVATE KEY-----
-</pre>
-
-<pre>
-$ openssl x509 -in acquaCA.crt -text -noout
-Certificate:
-    Data:
-        Version: 1 (0x0)
-        Serial Number: 9575856616369054695 (0x84e446db86c063e7)
-    Signature Algorithm: sha256WithRSAEncryption
-        Issuer: C=BR, ST=Sao Paulo, L=Sao Paulo, O=Acqua Corp, OU=Technology, CN=acqua.com/emailAddress=acquaviva@uol.com.br
-        Validity
-            Not Before: Dec 30 15:19:40 2020 GMT
-            Not After : Jan 29 15:19:40 2021 GMT
-        Subject: C=BR, ST=Sao Paulo, L=Sao Paulo, O=Acqua Corp, OU=Technology, CN=acqua.com/emailAddress=acquaviva@uol.com.br
-        Subject Public Key Info:
-            Public Key Algorithm: rsaEncryption
-                Public-Key: (2048 bit)
-                Modulus:
-                    00:d7:ef:01:e3:f7:dd:06:39:c8:45:17:3f:5b:41:
-                    d2:70:c1:29:33:0c:cd:8c:a7:c4:d0:11:9b:90:eb:
-                    3e:56:cd:7a:c7:39:56:46:44:d9:68:bf:c3:18:56:
-                    cf:34:95:7c:57:40:d3:ff:fe:52:66:bc:23:18:75:
-                    df:4e:8a:12:d1:da:a9:52:2f:dc:d0:8d:9f:93:b2:
-                    05:4f:74:66:e4:c8:5c:10:61:e1:fc:fc:fa:a3:1f:
-                    73:b8:e9:2c:d0:ba:69:f4:32:d9:60:ae:4d:8f:16:
-                    1c:00:c9:55:ed:29:91:a0:33:02:ae:1e:64:57:1a:
-                    5f:46:3f:ac:82:78:4c:1c:fb:92:2e:4f:f1:63:70:
-                    58:ba:ff:7b:6f:9f:9a:da:94:b8:cd:2c:91:a2:73:
-                    32:fa:1c:a7:11:72:c1:ca:7f:b7:88:dc:f3:28:7c:
-                    16:02:72:51:d1:b6:c9:72:e1:4a:18:36:58:26:ee:
-                    72:fb:aa:f9:73:2d:26:a8:45:37:49:85:3e:e1:23:
-                    c5:fb:1f:f9:d0:ff:6d:0b:28:e4:45:97:f1:0d:56:
-                    09:c9:a1:97:80:80:c3:f8:f2:62:ec:c3:f8:04:7c:
-                    51:d4:a0:55:d1:14:b2:4f:31:02:16:1d:b4:e9:00:
-                    5e:bb:2c:a1:69:16:47:c3:4d:52:60:2a:0e:2e:65:
-                    e7:db
-                Exponent: 65537 (0x10001)
-    Signature Algorithm: sha256WithRSAEncryption
-         37:ba:37:94:02:40:4b:23:59:04:e5:4a:da:a4:f6:4e:57:ce:
-         68:04:e9:82:5a:fc:22:96:a0:e3:3b:c4:7a:94:34:ff:73:23:
-         0b:d5:59:0b:19:4c:12:f0:0b:59:7e:e1:5e:85:1a:26:6c:37:
-         ca:5b:87:cf:5f:ba:88:3e:9e:15:e4:76:0b:0d:f8:82:eb:33:
-         28:d1:f9:5a:c5:12:21:97:22:f0:58:3e:5f:68:ac:a4:af:a7:
-         2c:cb:ae:3a:4d:16:fb:1e:11:49:5a:45:80:58:7f:28:70:c5:
-         4d:b9:2d:eb:5a:7e:93:d5:b6:92:68:2c:55:1d:b0:60:42:24:
-         7f:57:b6:48:cc:92:ec:3b:ed:ee:e7:da:2c:cf:50:af:75:64:
-         30:fb:c9:03:83:59:61:39:37:e3:d3:e6:2d:95:b2:d4:7b:a9:
-         ac:4d:e0:e8:d1:2e:a6:25:71:9b:af:e8:bb:f6:f4:7a:0b:3a:
-         fc:15:ff:a6:b2:f0:80:32:76:c2:42:23:82:f3:b9:25:ce:0b:
-         b6:51:5b:b4:f6:30:fe:cf:0f:2c:05:69:44:f4:52:e3:a5:59:
-         4c:08:1c:06:72:92:52:bf:f4:78:5a:62:12:30:57:0b:33:cf:
-         3a:c8:57:2b:15:43:5d:b9:53:b9:2f:d9:94:6d:bf:71:d5:2f:
-         dc:a4:66:77
-</pre>
-
-
-4. Issue a self-signed certificate for the CA<p>
-Create a local file named "acquaCA_csr.conf" with the "CA:TRUE" constraint
-
-<pre>
-[ req ]
-distinguished_name       = req_distinguished_name
-extensions               = v3_ca
-req_extensions           = v3_ca
-
-[ v3_ca ]
-basicConstraints         = CA:TRUE
-
-[ req_distinguished_name ]
-countryName              = Country Name (2 letter code)
-countryName_default      = BR
-countryName_min          = 2
-countryName_max          = 2
-organizationName         = Organization Name (eg, company)
-organizationName_default = Acqua Corp
-</pre>
-
-<p>Submit the file to create a CSR ("Certificate signing request"), accepting the default values. The command will create a "acquaCA.csr" file:
-<pre>
-openssl req -new -sha256 -key acquaCA.key -nodes -out acquaCA.csr -config acquaCA_csr.conf
-</pre>
-
-Issue the self-signed certificate. The command creates the "acquaCA.pem" file.
-<pre>
-$ openssl x509 -req -days 3650 -extfile acquaCA_csr.conf -extensions v3_ca -in acquaCA.csr -signkey acquaCA.key -out acquaCA.pem
-Signature ok
-subject=/C=BR/O=Acqua Corp
-Getting Private key
-</pre>
-
-
-## Kong Konnect Enterprise Digital Certificate
-1. Issue a Private Key for Kong Konnect Enterprise<p>
-The command creates the "kong.key" file.
-<pre>
-openssl genrsa -out kong.key
-</pre>
-
-2. Issue a CSR (Certificate Signing Request) for the Kong Konnect Enterprise Digital Certificate<p>
-The command creates the "kong.csr" file.
-<pre>
-$ openssl req -new -key kong.key -out kong.csr
-You are about to be asked to enter information that will be incorporated
-into your certificate request.
-What you are about to enter is what is called a Distinguished Name or a DN.
-There are quite a few fields but you can leave some blank
-For some fields there will be a default value,
-If you enter '.', the field will be left blank.
------
-Country Name (2 letter code) []:BR
-State or Province Name (full name) []:Sao Paulo
-Locality Name (eg, city) []:Sao Paulo
-Organization Name (eg, company) []:Kong Corp
-Organizational Unit Name (eg, section) []:Technology
-Common Name (eg, fully qualified host name) []:kong.com
-Email Address []:acquaviva@uol.com.br
-
-Please enter the following 'extra' attributes
-to be sent with your certificate request
-A challenge password []:kong
-</pre>
-
-3. Issue the Kong Konnect Enterprise Digital Certificate<p>
-The command creates the "kong.crt" file.
-<pre>
-$ openssl x509 -req -in kong.csr -days 3650 -sha1 -CAcreateserial -CA acquaCA.crt -CAkey acquaCA.key -out kong.crt
-Signature ok
-subject=/C=BR/ST=Sao Paulo/L=Sao Paulo/O=Kong Corp/OU=Technology/CN=kong.com/emailAddress=acquaviva@uol.com.br
-Getting CA Private Key
-</pre>
-
-4. Check the Kong Konnect Enterprise Certificate
-<pre>
-$ openssl x509 -in kong.crt -text -noout
-Certificate:
-    Data:
-        Version: 1 (0x0)
-        Serial Number: 17102241651444505032 (0xed575e2ba13d59c8)
-    Signature Algorithm: sha1WithRSAEncryption
-        Issuer: C=BR, ST=Sao Paulo, L=Sao Paulo, O=Acqua Corp, OU=Technology, CN=acqua.com/emailAddress=acquaviva@uol.com.br
-        Validity
-            Not Before: Dec 30 15:41:31 2020 GMT
-            Not After : Dec 28 15:41:31 2030 GMT
-        Subject: C=BR, ST=Sao Paulo, L=Sao Paulo, O=Kong Corp, OU=Technology, CN=kong.com/emailAddress=acquaviva@uol.com.br
-        Subject Public Key Info:
-            Public Key Algorithm: rsaEncryption
-                Public-Key: (2048 bit)
-                Modulus:
-                    00:a9:2b:7b:ea:c3:32:e6:fe:f5:76:99:bb:5d:fb:
-                    72:1d:64:a6:6f:5f:04:c6:fb:23:34:65:66:cc:db:
-                    06:24:c7:b8:14:2e:94:43:ac:5e:2f:b6:f8:37:e5:
-                    9c:c7:a8:79:f8:63:38:6c:1a:0e:0e:3b:b4:87:ed:
-                    2d:36:1b:64:ea:48:cf:aa:88:f9:be:78:4d:f8:87:
-                    68:2f:d7:7b:26:c4:ce:e0:ba:df:9f:06:c8:13:11:
-                    57:18:1c:c0:ef:e2:ad:90:dd:e3:84:f4:69:4a:c1:
-                    47:6c:1f:09:f2:03:34:70:56:94:a6:32:1a:78:89:
-                    f9:f7:64:af:1d:08:c1:b7:0a:d2:a3:e8:2a:90:a5:
-                    91:71:29:b7:c0:01:07:e7:91:64:18:cc:b2:16:45:
-                    8e:f4:ed:84:52:d1:51:69:4d:1d:2b:c8:8a:90:b5:
-                    bc:9f:62:71:9f:7a:02:a8:b1:ea:5c:b2:30:5d:2b:
-                    32:96:59:5a:1a:5a:d5:13:9e:10:d7:09:29:36:bd:
-                    a8:31:ec:e9:a4:2a:8a:00:30:62:7a:a6:be:0e:07:
-                    65:94:fe:7e:40:0c:12:02:e5:c8:23:67:3f:fe:4e:
-                    cc:72:21:8c:1c:79:a7:b0:ec:e2:c0:dd:11:09:e2:
-                    f6:6b:5c:38:db:58:70:54:37:d4:f7:c3:bf:49:23:
-                    b7:b5
-                Exponent: 65537 (0x10001)
-    Signature Algorithm: sha1WithRSAEncryption
-         14:be:e7:2d:7c:d2:cc:96:44:52:0e:fa:35:7e:61:95:41:57:
-         3a:b3:c1:6f:15:54:86:a3:4c:e7:ba:d8:f5:70:84:40:d3:fb:
-         5c:7a:3e:86:d2:a6:de:77:7b:0b:19:f4:b6:d1:a4:00:36:a3:
-         1a:f6:d0:a9:74:af:a2:9d:39:cd:b4:1c:54:cd:e3:e7:4e:d2:
-         c8:34:cc:27:e6:6c:d9:3e:aa:cf:d0:1a:cb:db:24:70:fd:2d:
-         49:ca:85:6b:a2:46:98:82:29:22:87:a2:50:60:60:50:40:2b:
-         7d:ad:11:db:da:da:c0:2d:71:a5:5b:c7:f6:38:ad:68:d0:49:
-         02:49:91:58:62:4b:ef:ee:66:6d:03:1b:ba:4c:5f:0c:c2:92:
-         cd:2c:99:4c:0c:8f:60:54:18:1a:c6:1b:72:36:ec:a1:61:ef:
-         56:49:75:ac:28:9a:a9:69:d7:3b:9e:5e:b4:9d:5b:41:1a:e7:
-         9a:5b:bd:c9:3c:27:76:42:02:87:f9:9a:62:2b:e3:28:a5:78:
-         13:26:57:29:a6:21:e5:85:84:aa:f8:33:b1:dd:7a:a7:b0:37:
-         36:d6:d6:0b:50:96:6c:2c:fe:f7:9b:2f:2a:f0:fe:90:94:63:
-         6a:d9:e6:a6:fb:49:e1:8d:21:d9:f8:f0:eb:72:d3:23:08:a7:
-         42:77:d7:f8
-</pre>
-
-
 
 
 ## Kafka Digital Certificate
