@@ -20,7 +20,7 @@ Before getting started make sure you have the following tools already installed:
 
 ## Kafka installation
 
-1. Create a Docker Network<p>
+### Create a Docker Network<p>
 We're going to create a specific Docker Network for both Kong and Kafka containers:
 
 <pre>
@@ -29,7 +29,7 @@ docker network create kong-net
 
 
 
-2. Kafka Installation
+### Kafka Installation
 Create Zookeeper and Kafka Containers<p>
 The Kafka installation uses the official Docker Images provided by Confluent. You can check them out here: https://hub.docker.com/u/confluent
 
@@ -56,16 +56,16 @@ confluentinc/cp-enterprise-control-center:7.0.1
 </pre>
 
 
-3. Install local Kafka utilities<p>
+### Install local Kafka utilities<p>
 For basic testing and event consumption install Kafka utilities locally also. For MacOS run:
+
 <pre>
 brew install kafka
 </pre>
 
-
-4. Create a Kafka topic<p>
-
+### Create a Kafka topic
 Insert a "kafka" entry in the /etc/hosts file with 127.0.0.1
+
 <pre>
 $ kafka-topics --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --topic test
 Created topic test.
@@ -120,8 +120,8 @@ In order to implement a mTLS encrypted tunnel with Kafka and Kong, we're going t
 
 Create a local directory to store all artifacts we're going to produce.
 
-1. Issue the CA's Private Key and Digital Certificate<p>
-Create a local file named "AcquaCA.cnf" with the "CA:TRUE" constraint
+### Issue the CA's Private Key and Digital Certificate<p>
+Create a local file named "acquaCA.cnf" with the "CA:TRUE" constraint
 
 <pre>
 HOME            = .
@@ -209,14 +209,16 @@ keyUsage               = digitalSignature, keyEncipherment
 </pre>
 
 
-2. Then create a database and serial number file, these will be used to keep track of which certificates were signed with this CA. Both of these are simply text files that reside in the same directory as your CA keys.
+### Create a database and serial number file
+These will be used to keep track of which certificates were signed with this CA. Both of these are simply text files that reside in the same directory as your CA keys.
 
 <pre>
 echo 01 > serial.txt
 touch index.txt
 </pre>
 
-3. Submit the file to create the CA's PrivateKey and Digital Certificate, accepting the default values. The command will create the "AcquaCA.key" and "AcquaCA_cert.pem" files:
+### Create the CA's PrivateKey and Digital Certificate
+Accept the default values. The command will create the "AcquaCA.key" and "AcquaCA_cert.pem" files:
 
 <pre>
 $ openssl req -x509 -config acquaCA.cnf -newkey rsa:4096 -sha256 -nodes -out AcquaCA_cert.pem -keyout AcquaCA.key -outform PEM
@@ -242,7 +244,10 @@ Email Address [acquaviva@uol.com.br]:
 </pre>
 
 
-
+### Insert CA Digital Certificate in Trust Store
+<pre>
+$ keytool -keystore server.truststore.jks -alias CARoot -import -file AcquaCA_cert.pem -storepass "serverpwd" --noprompt
+</pre>
 
 
 
