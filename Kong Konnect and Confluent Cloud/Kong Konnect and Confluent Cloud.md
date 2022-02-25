@@ -1,4 +1,7 @@
-# Kong Konnect and Confluent Cloud Reference Architecture
+# Exposing and Controlling Kafka Event Streaming with Kong Konnect and Confluent Cloud
+
+
+## Kong Konnect and Confluent Cloud Reference Architecture
 
 Event streaming allows companies to build more scalable and loosely coupled real-time applications supporting massive concurrency demands and simplifying the construction of services.
 
@@ -16,10 +19,10 @@ In an architecture like this, Kong will translate a regular REST request into Ka
 The diagram also shows that Kong Konnect has been deployed on a Hybrid environment, with a total separation of the Control Plane (CP) and Data Plane (DP). That is, while the Control Plane, managed by Kong, is responsible for administration tasks, the Data Plane is exclusively used by API Consumers. The Data Plane can be running on a variety of platforms including Docker, Kubernetes, VMs, etc.
 
 
-# 
+## 
 
 
-# Kafka Cluster
+## Kafka Cluster
 
 
 ### Create the Kafka Cluster
@@ -186,10 +189,10 @@ testing
 Type ˆC on the producer:
 
 
-# 
+##
 
 
-# Konnect Data Plane EKS Cluster
+## Konnect Data Plane EKS Cluster
 
 Our Konnect Data Plane will be running on an AWS EKS (Elastic Kubernetes Service). Use `eksctl` to create the Cluster.
 
@@ -331,7 +334,7 @@ X-Kong-Response-Latency: 0
 
 
 
-# Kong Declarations (decK)
+## Kong Declarations (decK)
 
 From the API provisioning perspective, besides the Control Plane Admin GUI, Kong offers [decK](https://docs.konghq.com/deck/) (Declarations for Kong).
 
@@ -390,10 +393,10 @@ deck konnect sync --konnect-email <konnect_id> --konnect-password '<konnect_pass
 
 
 
-# 
+## 
 
 
-# Kafka Upstream Plugin
+## Kafka Upstream Plugin
 
 Now let's enhance our declaration to use the Kafka Upstream Plugin. Note that we are using the Confluent Cloud's API Key and Secret issued during the Kafka Cluster creation. Also note that the communication between the Data Plane and the Kafka Cluster will be based on a SASL/SSL connection
 
