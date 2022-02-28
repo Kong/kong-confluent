@@ -12,7 +12,7 @@ Kong Konnect can complement Kafka Event Streaming, exposing it to new and extern
 ![alt_text](images/image1.png "image_tooltip")
 
 
-The diagram considers that the Kafka Platform is not being exposed to external applications or services. In this sense the Gateway is responsible not just to expose your Kafka Platform but, more importantly, also to control such exposure with typical policies like Authentication, Rate Limiting, etc.
+The diagram considers that the Kafka Platform is not being exposed to external applications or services. In this sense the Gateway is responsible not just to expose your Kafka Platform but, more importantly, to control such exposure with typical policies like Authentication, Rate Limiting, etc.
 
 In an architecture like this, Kong will translate a regular REST request into Kafka messages to be posted in existing topics.
 
@@ -205,12 +205,13 @@ eksctl create cluster --name konnect-dataplane --version 1.21 --region us-west-1
 
 ### Konnect new Runtime
 
-Now it's time to deploy Kong on the EKS Cluster. Login to Konnect and go "Runtimes" -> "Kubernetes".
+Now it's time to deploy Kong on the EKS Cluster.
+
+Login to Konnect.
 
 ![alt_text](images/image3.png "image_tooltip")
 
-
-Click on "Generate Certificate" and save all Certificates and Key in specific file. For example:
+Go to "Runtimes" -> "Kubernetes". Click on "Generate Certificate" and save all Certificates and Key in specific file. For example:
 
 * Cluster Certificate: `tls.crt`
 * Certificate Key: `tls.key`
@@ -280,13 +281,6 @@ helm install kong-dp kong/kong -n kong-dp \
 
 
 ### Checking the Installation
-
-Click on Runtime Manager and check the new Data Plane:
-
-
-
-![alt_text](images/image4.png "image_tooltip")
-
 
 Use kubectl to check the Kubernetes deployment:
 
