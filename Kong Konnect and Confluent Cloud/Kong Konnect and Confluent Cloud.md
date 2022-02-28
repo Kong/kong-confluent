@@ -162,7 +162,6 @@ Open another terminal to run the Kafka producer
 ```
 $ ./confluent kafka topic produce topictest
 Starting Kafka Producer. Use Ctrl-C or Ctrl-D to exit.
-testing
 ```
 
 
@@ -211,7 +210,7 @@ Login to Konnect.
 
 ![alt_text](images/image3.png "image_tooltip")
 
-Go to "Runtimes" -> "Kubernetes". Click on "Generate Certificate" and save all Certificates and Key in specific file. For example:
+Go to "Runtimes" -> "Kubernetes". Click on "Generate Certificate" and save all Certificates and Key in specific files. For example:
 
 * Cluster Certificate: `tls.crt`
 * Certificate Key: `tls.key`
@@ -349,7 +348,7 @@ $ brew install kong/deck/deck
 
 ### konnect.yaml
 
-For the simplest Kong Service and Route creation uses the following declaration:
+For the simplest Kong Service and Route creation use the following declaration:
 
 
 ```
@@ -489,8 +488,7 @@ On a terminal send a request to consume the Route using the Load Balancer provis
 
 
 ```
-http ad5ced7ee47e640e5a0a7eb397ffa6bf-1111796435.us-west-1.elb.amazonaws.com/httpbin/get aaa:888
-$ http :8000/kafkaupstream/get aaa:444
+$ http ad5ced7ee47e640e5a0a7eb397ffa6bf-1111796435.us-west-1.elb.amazonaws.com/httpbin/get aaa:888
 HTTP/1.1 200 OK
 Connection: keep-alive
 Content-Length: 26
